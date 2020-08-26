@@ -68,6 +68,8 @@ class Game {
         this.rotation = 0;
         this.speed = 1000;
         this.randomRowChance = 0.05;
+        this.titlePos1 = (this.wWidth - title.width) / 2;
+        this.titlePos2 = this.titlePos1 + this.wWidth;
     }
 
     rotate(px, py, r) {
@@ -501,14 +503,31 @@ gameLoop() {
     if (this.gameState === 'titleScreen') {
         let w = title.width;
         let h = title.height;
-
         //Title
         ctx.save();
-        ctx.transform(1, 0, 0, 1, (this.wWidth - w * this.scale) / 6 * Math.sin(this.elapsedTime / 3000) , this.wHeight * 0.02 * Math.cos(this.elapsedTime/750));
-        ctx.drawImage(title, 0, 322 * (Math.floor(this.tick / 60) % 3), w, 322, (this.wWidth - w * this.scale) / 2, this.scale,
-                       w * this.scale, 322 * this.scale);
-        ctx.restore();
+        ctx.globalAlpha = 0.7 + 0.3 * Math.sin(this.tick / 10)
+        ctx.drawImage(title, 0, 648, w, 127, this.titlePos1, 100 * this.scale + 20 * Math.sin(this.elapsedTime / 400),
+                    w * this.scale * 1.005, 125 * this.scale * 1.005);
+        ctx.drawImage(title, 0, 648, w, 127, this.titlePos2, 100 * this.scale + 20 * Math.sin(this.elapsedTime / 400) ,
+                        w * this.scale * 1.005, 127 * this.scale * 1.005);
+        ctx.globalAlpha = 1;
+        ctx.drawImage(title, 0, 127 * Math.floor((this.tick / 100) % 5), w, 127, this.titlePos1, 100 * this.scale + 20 * Math.sin(this.elapsedTime / 400),
+                       w * this.scale, 127 * this.scale);
+        ctx.drawImage(title, 0, 127 * Math.floor((this.tick / 100) % 5), w, 127, this.titlePos2, 100 * this.scale + 20 * Math.sin(this.elapsedTime / 400) ,
+                        w * this.scale, 127 * this.scale);
 
+        this.titlePos1 -= 4;
+        this.titlePos2 -= 4;
+
+        ctx.restore();
+        this.moveOffset+=10;
+        if(this.titlePos1 < - w * this.scale) {
+            this.titlePos1 = this.titlePos2 + this.wWidth;
+        }
+
+        if (this.titlePos2 < - w * this.scale) {
+            this.titlePos2 = this.titlePos1 + this.wWidth;
+        }
         //Game Mode
         ctx.drawImage(textSheet, 370, 0, 300, 37, 50 * this.scale, this.wHeight * 0.5, 300 * this.scale, 37 * this.scale);
         ctx.drawImage(textSheet, 680, 0, 170, 37, 450 * this.scale, this.wHeight * 0.5, 170 * this.scale, 37 * this.scale);
@@ -737,7 +756,7 @@ gameLoop() {
                     this.bonus = 0;
                     this.selectNewPiece();
 
-                    if (this.hardCoreMode && Math.random() < 0.05) {
+                    if (this.hardCoreMode && Math.random() < 0.07) {
                         this.highestRow = this.calculateHighestRow();
                      this.highestRow += Math.floor(Math.random() * (this.rows - this.highestRow - 2));
                          if (this.highestRow < this.rows - 2 && this.highestRow === this.calculateHighestRow()) {

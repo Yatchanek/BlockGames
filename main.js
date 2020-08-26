@@ -5,14 +5,16 @@ const ctx = gameWindow.getContext('2d');
 let mouseX;
 let mouseY;
 
-const game = new Game();
-let resCount = 0;
 const blocks = new Image();
 const blocks2 = new Image();
 const title = new Image();
 const cursor = new Image();
 const startButton = new Image();
 const textSheet = new Image();
+const game = new Game();
+
+let resCount = 0;
+
 
 blocks.src = './res/blocks.png';
 blocks.onload = assetLoader();
@@ -22,8 +24,6 @@ title.src = './res/title.png';
 title.onload = assetLoader();
 cursor.src = './res/cursor.png';
 cursor.onload = assetLoader();
-startButton.src = './res/startbutton.png';
-startButton.onload = assetLoader();
 textSheet.src = './res/textsheet.png';
 textSheet.onload = assetLoader();
 const sWidth = window.screen.width;
@@ -32,7 +32,7 @@ const sWidth = window.screen.width;
 
 function assetLoader() {
     resCount++;
-    if (resCount === 6) {
+    if (resCount === 5) {
      gameWindow.width = window.innerWidth;
      gameWindow.height = window.innerHeight;
      game.run();
