@@ -558,9 +558,9 @@ gameLoop() {
      
         //Hardcore Mode select
         if (this.hardCoreMode) {
-            ctx.strokeRect(540, this.wHeight * 0.7 - 12, 106 * this.scale, 61 * this.scale);
+            ctx.strokeRect(540 * this.scale, this.wHeight * 0.7 - 12 * this.scale, 106 * this.scale, 61 * this.scale);
         } else {
-            ctx.strokeRect(672, this.wHeight * 0.7 - 12, 132 * this.scale, 61 * this.scale);
+            ctx.strokeRect(672 * this.scale, this.wHeight * 0.7 - 12 * this.scale, 132 * this.scale, 61 * this.scale);
         }
 
 
