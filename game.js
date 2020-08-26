@@ -67,9 +67,6 @@ class Game {
         this.hintsAllowed = true;
         this.rotation = 0;
         this.speed = 1000;
-        this.randomRowChance = 0.05;
-        this.titlePos1 = (this.wWidth - title.width) / 2;
-        this.titlePos2 = this.titlePos1 + this.wWidth;
     }
 
     rotate(px, py, r) {
@@ -165,8 +162,8 @@ class Game {
         this.currentPiece = this.nextPiece;
         this.nextPiece = Math.floor(Math.random() * pieceCount);
         
-        let off = pieceCount = this.gameMode === TETRIS ? 1 : 2;
-        this.shadowX = this.currentX = this.cols / 2 - off;
+
+        this.shadowX = this.currentX = this.cols / 2 - 1;
         this.shadowY = this.currentY = 0;
         this.rotation = 0;
         this.dropped = false;
@@ -213,9 +210,16 @@ class Game {
         this.originY = Math.floor((this.wHeight - this.gHeight) / 2);
 
         this.ongoingPlay = true;
+
         this.createGrid();
+        console.log(this.ongoingPlay)
+
         this.selectNewPiece();
+        console.log(this.ongoingPlay)
+
         this.nextState = 'playing'
+        console.log(this.ongoingPlay)
+
     }
 
     handleClick() {
@@ -232,67 +236,33 @@ class Game {
         
 
         //Game Mode
-            if(this.isClicked(450 * this.scale,  620 * this.scale, 
+        if(this.isClicked(450 * this.scale,  620 * this.scale, 
                           this.wHeight * 0.5, this.wHeight * 0.5 + 37 * this.scale)) {
                            
-                this.gameMode = TETRIS;
-            }
+            this.gameMode = TETRIS;
+        }
 
-            if(this.isClicked(720 * this.scale, 922 * this.scale, 
+        if(this.isClicked(720 * this.scale, 922 * this.scale, 
                           this.wHeight * 0.5, this.wHeight * 0.5 + 37 * this.scale)) {
                             
-                this.gameMode = PENTRIS;
-        }
-
-        //Skill Level
-        if(this.isClicked(430 * this.scale,  474 * this.scale, 
-            this.wHeight * 0.6, this.wHeight * 0.6 + 37 * this.scale)) {
-             
-                this.skillLevel = 0;
-        }
-
-        if(this.isClicked(500 * this.scale,  544 * this.scale, 
-            this.wHeight * 0.6, this.wHeight * 0.6 + 37 * this.scale)) {
-             
-                this.skillLevel = 3;
-        }
-
-        if(this.isClicked(570 * this.scale,  614 * this.scale, 
-            this.wHeight * 0.6, this.wHeight * 0.6 + 37 * this.scale)) {
-             
-                this.skillLevel = 6;
-        }
-
-        if(this.isClicked(640 * this.scale,  688 * this.scale, 
-            this.wHeight * 0.6, this.wHeight * 0.6 + 37 * this.scale)) {
-             
-                this.skillLevel = 9;
-        }
-
-        //Hardcore Mode
-        if(this.isClicked(552 * this.scale, 643 * this.scale, this.wHeight * 0.7, this.wHeight * 0.7 + 37 * this.scale)) {
-            this.hardCoreMode = true;
-        }
-
-        if(this.isClicked(684 * this.scale, 794 * this.scale, this.wHeight * 0.7, this.wHeight * 0.7 + 37 * this.scale)) {
-            this.hardCoreMode = false;
+            this.gameMode = PENTRIS;
         }
     }
-
-
-    ctx.drawImage(textSheet, 0, 122, 31, 30, 430 * this.scale, this.wHeight * 0.6, 44 * this.scale, 37 * this.scale)
-    ctx.drawImage(textSheet, 94, 122, 31, 30, 500 * this.scale, this.wHeight * 0.6, 44 * this.scale, 37 * this.scale)
-    ctx.drawImage(textSheet, 191, 122, 31, 30, 570 * this.scale, this.wHeight * 0.6, 44 * this.scale, 37 * this.scale)
-    ctx.drawImage(textSheet, 287, 122, 31, 30, 640 * this.scale, this.wHeight * 0.6, 44 * this.scale, 37 * this.scale)
-
-
-
+    console.log(this.gameMode)
     }
 
 
 cls() {
     ctx.save();
-    ctx.fillStyle = `rgba(16, 25, 41, 1)`;
+    switch (this.gameState) {
+        // case 'titleScreen':
+        // case 'modeSelect':
+        //     ctx.fillStyle = `rgba(${80 + 20 * Math.sin(this.elapsedTime / 600)}, 0, 0)`;
+        // break;
+        default:
+            ctx.fillStyle = `rgba(16, 25, 41, 1)`;
+    }
+
     ctx.fillRect(0,0, this.wWidth, this.wHeight);
     ctx.restore();
 }
@@ -304,20 +274,13 @@ createGrid() {
             this.grid[y * this.cols + x] = (x === 0 || x === this.cols - 1 || y === this.rows - 1) ? 20 : null;      
         }
     }
-
-    if (this.skillLevel > 0) {
+    if (this.gameMode === TETRIS && this.skillLevel > 0) {
         let top = this.rows - this.skillLevel - 2;
-        let c = this.gameMode === TETRIS ? 7 : 18;
-        let gapCount;
-        do {
-            gapCount = 0;
-            for (let y = this.rows - 2; y > top; y--) {
-                for (let x = 1; x < this.cols - 1; x++) {
-                    this.grid[y*this.cols + x] = Math.random() < 0.3 ? random(c) : null;
-                    if(this.grid[y*this.cols + x] === null) gapCount++;
-                }
-            } 
-        } while (gapCount <=3 && gapCout >= this.cols - 6);
+        for (let y = this.rows - 2; y > top; y--) {
+            for (let x = 1; x < this.cols - 1; x++) {
+                this.grid[y*this.cols + x] = Math.random() < 0.25 ? random(7) : null;
+            }
+        }
     }
 }
 
@@ -474,9 +437,9 @@ checkKeyInput() {
 
 calculateHighestRow() {
     let check = 0;
-    for (let py = this.rows - 2; py >=0; py--) {       
-        for (let px = 1; px < this.cols - 1; px++) {
-            check |= this.grid[py * this.cols + px];
+    for (py = this.rows - 2; py >=0; py--) {       
+        for (px = 1; px < this.cols - 1; px++) {
+            check |= grid[py * this.cols + px];
         }
         if (check === 0) return py + 1;
         check = 0;
@@ -485,6 +448,7 @@ calculateHighestRow() {
 }
 
 gameLoop() {
+    console.log(this.gameMode)
     let timestamp = performance.now();
     this.scale = this.wWidth / sWidth;
     this.delta = timestamp - this.lastTime;
@@ -503,31 +467,14 @@ gameLoop() {
     if (this.gameState === 'titleScreen') {
         let w = title.width;
         let h = title.height;
+
         //Title
         ctx.save();
-        ctx.globalAlpha = 0.7 + 0.3 * Math.sin(this.tick / 10)
-        ctx.drawImage(title, 0, 648, w, 127, this.titlePos1, 100 * this.scale + 20 * Math.sin(this.elapsedTime / 400),
-                    w * this.scale * 1.005, 125 * this.scale * 1.005);
-        ctx.drawImage(title, 0, 648, w, 127, this.titlePos2, 100 * this.scale + 20 * Math.sin(this.elapsedTime / 400) ,
-                        w * this.scale * 1.005, 127 * this.scale * 1.005);
-        ctx.globalAlpha = 1;
-        ctx.drawImage(title, 0, 127 * Math.floor((this.tick / 100) % 5), w, 127, this.titlePos1, 100 * this.scale + 20 * Math.sin(this.elapsedTime / 400),
-                       w * this.scale, 127 * this.scale);
-        ctx.drawImage(title, 0, 127 * Math.floor((this.tick / 100) % 5), w, 127, this.titlePos2, 100 * this.scale + 20 * Math.sin(this.elapsedTime / 400) ,
-                        w * this.scale, 127 * this.scale);
-
-        this.titlePos1 -= 4;
-        this.titlePos2 -= 4;
-
+        ctx.transform(1, 0, 0, 1, (this.wWidth - w * this.scale) / 6 * Math.sin(this.elapsedTime / 3000) , this.wHeight * 0.02 * Math.cos(this.elapsedTime/750));
+        ctx.drawImage(title, 0, 322 * (Math.floor(this.tick / 60) % 3), w, 322, (this.wWidth - w * this.scale) / 2, this.scale,
+                       w * this.scale, 322 * this.scale);
         ctx.restore();
-        this.moveOffset+=10;
-        if(this.titlePos1 < - w * this.scale) {
-            this.titlePos1 = this.titlePos2 + this.wWidth;
-        }
 
-        if (this.titlePos2 < - w * this.scale) {
-            this.titlePos2 = this.titlePos1 + this.wWidth;
-        }
         //Game Mode
         ctx.drawImage(textSheet, 370, 0, 300, 37, 50 * this.scale, this.wHeight * 0.5, 300 * this.scale, 37 * this.scale);
         ctx.drawImage(textSheet, 680, 0, 170, 37, 450 * this.scale, this.wHeight * 0.5, 170 * this.scale, 37 * this.scale);
@@ -545,43 +492,14 @@ gameLoop() {
         ctx.drawImage(textSheet, 1060, 0, 82, 37, 552 * this.scale, this.wHeight * 0.7, 82 * this.scale, 37 * this.scale)
         ctx.drawImage(textSheet, 1060, 40, 110, 37, 684 * this.scale, this.wHeight * 0.7, 110 * this.scale, 37 * this.scale)
 
-        //Selected Items Rectangle
-        //Game Mode
         ctx.strokeStyle = `rgb(13, ${190 + 60 * Math.sin(this.tick / 5)}, ${195 + 60 * Math.sin(this.tick / 5)})`;
         ctx.lineWidth = 5;
         if (this.gameMode === TETRIS) {
-            ctx.strokeRect(434 * this.scale, this.wHeight * 0.5 - 16 * this.scale, 202 * this.scale , 69 * this.scale );
+            ctx.strokeRect(434 * this.scale, this.wHeight * 0.5 - 16 * this.scale, 202, 69);
         }
         else {
-            ctx.strokeRect(704 * this.scale, this.wHeight * 0.5 - 16 * this.scale, 232 * this.scale , 69 * this.scale );
+            ctx.strokeRect(704 * this.scale, this.wHeight * 0.5 - 16 * this.scale, 232, 69);
         }
-
-        //Skill level
-        switch (this.skillLevel) {
-            case 0:
-                ctx.strokeRect(420 * this.scale, this.wHeight * 0.6 - 10 * this.scale, 60 * this.scale, 55 * this.scale);
-            break;
-            case 3:
-                ctx.strokeRect(490 * this.scale, this.wHeight * 0.6 - 10 * this.scale, 60 * this.scale, 55 * this.scale);
-            break;
-                
-            case 6:
-                ctx.strokeRect(560 * this.scale, this.wHeight * 0.6 - 10 * this.scale, 60 * this.scale, 55 * this.scale);
-            break;
-
-            case 9:
-                ctx.strokeRect(630 * this.scale, this.wHeight * 0.6 - 10 * this.scale, 60 * this.scale, 55 * this.scale);
-            break;
-
-        }
-     
-        //Hardcore Mode select
-        if (this.hardCoreMode) {
-            ctx.strokeRect(540 * this.scale, this.wHeight * 0.7 - 12 * this.scale, 106 * this.scale, 61 * this.scale);
-        } else {
-            ctx.strokeRect(672 * this.scale, this.wHeight * 0.7 - 12 * this.scale, 132 * this.scale, 61 * this.scale);
-        }
-
 
         //Start Game Button Animation
         if (this.isClicked((this.wWidth - 476 * this.scale) / 2, (this.wWidth + 476 * this.scale) / 2,
@@ -594,7 +512,60 @@ gameLoop() {
         ctx.drawImage(cursor, mouseX - 32, mouseY - 32);
     }
 
-     if (this.ongoingPlay) {
+    // if (this.gameState === 'modeSelect') {
+    //     let w = title.width;
+    //     let h = title.height;
+    //     let normalHover;
+    //     let hardCoreHover;
+
+    //     ctx.save();
+    //     //Title
+    //     ctx.transform(1, 0, 0, 1, (this.wWidth - w * this.scale) / 6 * Math.sin(this.elapsedTime / 3000) , this.wHeight * 0.02 * Math.cos(this.elapsedTime/750));
+    //     ctx.drawImage(title, 0, 322 * (Math.floor(this.tick / 60) % 3), w, 322, (this.wWidth - w * this.scale) / 2, this.wHeight / 10 * this.scale,
+    //                    w * this.scale, 322 * this.scale);
+    //     ctx.restore();
+
+    //     //Select game mode
+    //     ctx.drawImage(textSheet, 0, 300, 935, 100, (this.wWidth - 935 * this.scale) / 2, this.wHeight * 0.55, 935 * this.scale, 100 * this.scale);
+
+    //     //Hover animations
+    //     if (this.isClicked(this.wWidth / 2 - 285 * this.scale - this.wWidth / 8, this.wWidth / 2 - this.wWidth / 8,
+    //                   this.wHeight * 0.75, this.wHeight * 0.75 + 55 * this.scale)) {
+    //         this.scale += 0.05 * Math.sin(this.elapsedTime/150);
+    //         normalHover = true;
+    //     }
+
+    //     ctx.drawImage(textSheet, 0, 420, 285, 55, this.wWidth / 2 - 285 * this.scale - this.wWidth / 8,
+    //                   this.wHeight * 0.75, 285 * this.scale, 55 * this.scale);
+
+    //     this.scale = this.wWidth / sWidth;
+
+    //     if (this.isClicked(this.wWidth / 2 + this.wWidth / 8, this.wWidth / 2 + this.wWidth / 8 + 366 * this.scale,
+    //                   this.wHeight * 0.75, this.wHeight * 0.75 + 55 * this.scale)) {
+    //         this.scale += 0.05 * Math.sin(this.elapsedTime/150);
+    //         hardCoreHover = true;
+    //     }
+
+    //        ctx.drawImage(textSheet, 300, 420, 366, 55, this.wWidth / 2 + this.wWidth / 8,
+    //                      this.wHeight * 0.75, 366 * this.scale, 55 * this.scale);
+
+    //        this.scale = this.wWidth / sWidth;
+
+    //     //Mode explanation
+    //     if (normalHover) {
+    //         ctx.drawImage(textSheet, 350, 100, 225, 55, this.wWidth / 2 - 285 * this.scale - this.wWidth / 8,
+    //                       this.wHeight * 0.75 + 80 * this.scale, 225 * this.scale, 55 * this.scale);
+    //     }
+    //     if (hardCoreHover) {
+    //         ctx.drawImage(textSheet, 600, 100, 285, 55, this.wWidth / 2 + this.wWidth / 8,
+    //                       this.wHeight * 0.75 + 80 * this.scale, 285 * this.scale, 55 * this.scale);
+    //     }
+
+    //     ctx.drawImage(cursor, mouseX - 32, mouseY - 32);
+    // }
+
+    if (this.ongoingPlay) {
+        console.log('Running')
         this.drawGrid();
         this.drawInfo();
         this.checkKeyInput()
@@ -673,17 +644,11 @@ gameLoop() {
 
     if (this.gameState === 'randomRow') {
         let c = this.gameMode === TETRIS ? 7 : 18;
-        let gapCount = 0;
-        do {
-            gapCount = 0;
-            for (let px = 1; px < this.cols -1; px ++) {
+        for (let px = 1; px < this.cols -1; px ++) {
                 this.grid[this.highestRow * this.cols + px] = Math.random() < 0.33 ? null : random(c);
-                if (this.grid[this.highestRow * this.cols + px] === null) gapCount++;
-            }   
-        } while (gapCount >Math.floor(this.rows / 3))
+        }
 
-
-        if (this.tick - this.lastTick > 10) {
+        if (tick - lastTick > 10) {
             this.nextState = 'playing';
         }
 
@@ -748,7 +713,6 @@ gameLoop() {
                     this.speed -= 100;
                     if (this.speed < 100) this.speed = 50;
                     this.level++;
-                    this.randomRowChance += 0.005;
                     this.advanceLevel = false;
                 }
 
@@ -756,10 +720,10 @@ gameLoop() {
                     this.bonus = 0;
                     this.selectNewPiece();
 
-                    if (this.hardCoreMode && Math.random() < 0.07) {
-                        this.highestRow = this.calculateHighestRow();
+                    if (hardCoreMode && Math.random() < 0.07) {
+                        this.highestRow = this.calculatehighestRow();
                      this.highestRow += Math.floor(Math.random() * (this.rows - this.highestRow - 2));
-                         if (this.highestRow < this.rows - 2 && this.highestRow === this.calculateHighestRow()) {
+                         if (this.highestRow < this.rows - 2 && this.highestRow === this.calculatehighestRow()) {
                              this.highestRow++;
                          }
 
@@ -767,7 +731,6 @@ gameLoop() {
                          this.gameTick = false;
                          this.nextState = 'randomRow'
                      }
-
                 }
 
                 }
@@ -778,4 +741,6 @@ gameLoop() {
     this.gameState = this.nextState;
     requestAnimationFrame(() => this.gameLoop());
 }
+
+
 }

@@ -4,6 +4,7 @@ const gameWindow = document.querySelector('.game-window');
 const ctx = gameWindow.getContext('2d');
 let mouseX;
 let mouseY;
+let resCount = 0;
 
 const blocks = new Image();
 const blocks2 = new Image();
@@ -11,10 +12,8 @@ const title = new Image();
 const cursor = new Image();
 const startButton = new Image();
 const textSheet = new Image();
+
 const game = new Game();
-
-let resCount = 0;
-
 
 blocks.src = './res/blocks.png';
 blocks.onload = assetLoader();
