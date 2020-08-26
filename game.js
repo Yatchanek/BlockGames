@@ -612,14 +612,8 @@ gameLoop() {
     if (this.gameState === 'paused') {
         ctx.save();
         ctx.fillStyle = `rgba(16, 25, 41, 1)`;
-        ctx.fillRect(this.originX + this.cellSize, this.originY, this.cellSize * (this.cols - 2), this.cellSize * (this.rows - 1));
-        ctx.font = 'bold 100px "Arial Bold"';
-        ctx.fillStyle = 'rgba(0, 0, 0, .5)'
-        ctx.fillRect(this.wWidth / 2 - this.wWidth / 6, this.wHeight / 2 - this.wHeight / 6, this.wWidth / 3, this.wHeight / 3)
-        let w = ctx.measureText('PAUSED').width;
-        ctx.fillStyle = 'rgb(255, 255, 255)';
-        ctx.fillText('PAUSED', this.wWidth / 2 - w / 2, this.wHeight / 2 + 25);
-        ctx.restore();
+        ctx.fillRect(this.originX + this.cellSize * this.scale, this.originY, this.cellSize * this.scale * (this.cols - 2), this.cellSize * this.scale * (this.rows - 1) )
+        ctx.drawImage(textSheet, 0, 265, 590, 95, (this.wWidth - 590 * this.scale) / 2, (this.wHeight - 95 * this.scale) / 2, 590 * this.scale, 95 * this.scale)
     }
 
 
