@@ -531,10 +531,10 @@ gameLoop() {
         ctx.strokeStyle = `rgb(13, ${190 + 60 * Math.sin(this.tick / 5)}, ${195 + 60 * Math.sin(this.tick / 5)})`;
         ctx.lineWidth = 5;
         if (this.gameMode === TETRIS) {
-            ctx.strokeRect(434 * this.scale, this.wHeight * 0.5 - 16 * this.scale, 202, 69);
+            ctx.strokeRect(434 * this.scale, this.wHeight * 0.5 - 16 * this.scale, 202 * this.scale , 69 * this.scale );
         }
         else {
-            ctx.strokeRect(704 * this.scale, this.wHeight * 0.5 - 16 * this.scale, 232, 69);
+            ctx.strokeRect(704 * this.scale, this.wHeight * 0.5 - 16 * this.scale, 232 * this.scale , 69 * this.scale );
         }
 
         //Skill level
@@ -558,9 +558,9 @@ gameLoop() {
      
         //Hardcore Mode select
         if (this.hardCoreMode) {
-            ctx.strokeRect(540, this.wHeight * 0.7 - 12, 106, 61);
+            ctx.strokeRect(540, this.wHeight * 0.7 - 12, 106 * this.scale, 61 * this.scale);
         } else {
-            ctx.strokeRect(672, this.wHeight * 0.7 - 12, 132, 61);
+            ctx.strokeRect(672, this.wHeight * 0.7 - 12, 132 * this.scale, 61 * this.scale);
         }
 
 
@@ -759,6 +759,4 @@ gameLoop() {
     this.gameState = this.nextState;
     requestAnimationFrame(() => this.gameLoop());
 }
-
-
 }
