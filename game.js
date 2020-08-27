@@ -58,10 +58,17 @@ class Game {
         this.score = 0;
         this.level = 1;
         this.bonus = 0;
-        this.tetrisScore = 0;
-        this.tetrisHardScore = 0;
-        this.pentrisScore = 0;
-        this.pentrisHardScore = 0;
+        if (window.localStorage.hasOwnProperty('BlockMayhemScores')) {
+            this.highScores = JSON.parse(window.localStorage.getItem('BlockMayhemScores'));
+        }
+        else {
+            this.highScores = {
+                tetrisScore: 0,
+                tetrisHardScore: 0,
+                pentrisScore: 0,
+                pentrisHardScore: 0,
+            }
+        }
         this.skillLevel = 0;
         this.hints = true;
         this.hintsAllowed = true;
@@ -205,6 +212,10 @@ class Game {
             this.hints = false;
             this.hintsAllowed = false;
         }
+        else {
+            this.hints = true;
+            this.hintsAllowed = true;
+        }
         
         this.cellSize = Math.floor(this.wHeight * 0.95 / this.rows);
         this.gWidth = this.cellSize * this.cols;
@@ -214,6 +225,7 @@ class Game {
 
         this.ongoingPlay = true;
         this.createGrid();
+        this.currentPiece = this.nextPiece = null;
         this.selectNewPiece();
         this.nextState = 'playing'
     }
@@ -338,10 +350,10 @@ drawInfo() {
      ctx.drawImage(textSheet, 130, 0, 235, 35, 30 * this.scale, 20 * this.scale, 235 * this.scale, 35 * this.scale);
      let s;
      if (this.hardCoreMode) {
-        this.gameMode === TETRIS ? s = this.tetrisHardScore.toString() : s = this.pentrisHardScore.toString();
+        this.gameMode === TETRIS ? s = this.highScores.tetrisHardScore.toString() : s = this.highScores.pentrisHardScore.toString();
     }
     else {
-       this.gameMode === TETRIS ? s = this.tetrisScore.toString() : s = this.pentrisScore.toString();
+       this.gameMode === TETRIS ? s = this.highScores.tetrisScore.toString() : s = this.highScores.pentrisScore.toString();
     }
      
      let count = 0;
@@ -622,20 +634,21 @@ gameLoop() {
                       this.wHeight / 2 - 50 * this.scale, 880 * this.scale, 100 * this.scale);
 
         if (this.gameMode === TETRIS) {
-            if (this.hardCoreMode && this.score > this.tetrisHardScore) {
-                this.tetrisHardScore = this.score;
+            if (this.hardCoreMode && this.score > this.highScores.tetrisHardScore) {
+                this.highScores.tetrisHardScore = this.score;
             } 
-            else if (this.score > this.tetrisScore) {
-                this.tetrisScore = this.score
+            else if (this.score > this.highScores.tetrisScore) {
+                this.highScores.tetrisScore = this.score
             }       
         }  else {
-            if (this.hardCoreMode && this.score > this.pentrisHardScore) {
-                this.pentrisHardScore = this.score;
+            if (this.hardCoreMode && this.score > this.highScores.pentrisHardScore) {
+                this.highScores.pentrisHardScore = this.score;
             } 
-            else if (this.score > this.pentrisScore) {
-                this.pentrisScore = this.score
+            else if (this.score > this.highScores.pentrisScore) {
+                this.highScores.pentrisScore = this.score
             }    
-        }            
+        } 
+        window.localStorage.setItem('BlockMayhemScores', JSON.stringify(this.highScores));          
     }
 
     if (this.gameState === 'removing') {
