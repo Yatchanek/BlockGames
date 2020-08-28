@@ -64,9 +64,7 @@ class Game {
         else {
             this.highScores = {
                 tetrisScore: 0,
-                tetrisHardScore: 0,
                 pentrisScore: 0,
-                pentrisHardScore: 0,
             }
         }
         this.skillLevel = 0;
@@ -349,11 +347,11 @@ drawGrid() {
 drawInfo() {
      ctx.drawImage(textSheet, 130, 0, 235, 35, 30 * this.scale, 20 * this.scale, 235 * this.scale, 35 * this.scale);
      let s;
-     if (this.hardCoreMode) {
-        this.gameMode === TETRIS ? s = this.highScores.tetrisHardScore.toString() : s = this.highScores.pentrisHardScore.toString();
+     if (this.gameMode === TETRIS) {
+        s = this.highScores.tetrisScore.toString();
     }
     else {
-       this.gameMode === TETRIS ? s = this.highScores.tetrisScore.toString() : s = this.highScores.pentrisScore.toString();
+       s = this.highScores.pentrisScore.toString();
     }
      
      let count = 0;
@@ -632,23 +630,22 @@ gameLoop() {
     if (this.gameState === 'gameOver') {
         ctx.drawImage(textSheet, 0, 160, 880, 100, this.wWidth / 2 - 440 * this.scale,
                       this.wHeight / 2 - 50 * this.scale, 880 * this.scale, 100 * this.scale);
-
-        if (this.gameMode === TETRIS) {
-            if (this.hardCoreMode && this.score > this.highScores.tetrisHardScore) {
-                this.highScores.tetrisHardScore = this.score;
-            } 
-            else if (this.score > this.highScores.tetrisScore) {
-                this.highScores.tetrisScore = this.score
-            }       
-        }  else {
-            if (this.hardCoreMode && this.score > this.highScores.pentrisHardScore) {
-                this.highScores.pentrisHardScore = this.score;
-            } 
-            else if (this.score > this.highScores.pentrisScore) {
-                this.highScores.pentrisScore = this.score
+        
+        let newRecord = false;
+        if (this.gameMode ===  TETRIS && this.score > this.highScores.tetrisScore) {
+                this.highScores.tetrisScore = this.score;
+                newRecord = true;
+            }
+            
+        else if(this.gameMode === PENTRIS && this.score > this.highScores.pentrisScore) {
+                this.highScores.pentrisScore = this.score;
+                newRecord = true;
             }    
-        } 
-        window.localStorage.setItem('BlockMayhemScores', JSON.stringify(this.highScores));          
+        
+        if(newRecord) {
+            window.localStorage.setItem('BlockMayhemScores', JSON.stringify(this.highScores));          
+        }
+        
     }
 
     if (this.gameState === 'removing') {
@@ -704,6 +701,7 @@ gameLoop() {
 
         if (!this.fits(this.currentX, this.currentY, this.rotation)) {
             this.lastTick = this.tick;
+            this.dropped = true;
             this.nextState = 'gameOver';
         }
 
@@ -743,6 +741,10 @@ gameLoop() {
 
                     if (this.fullLines.length) {
                          this.bonus += this.fullLines.length * 0.25;
+                         this.bonus *= (1+0.05 * this.skillLevel);
+                         if(this.hardCoreMode) {
+                             this.bonus *=1.2;
+                         }
                          if (this.fullLines.length === 5) this.bonus *= 1.5;
                          this.score += this.fullLines.length * 50 * (1+this.bonus);
                          this.score = Math.floor(this.score);
