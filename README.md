@@ -2,7 +2,7 @@
 
 A combination of my two earlier projects - tetris and pentris into one single game.
 
-The beginning was a video by Javidx9 about programming tetris. I then converted the code to Javascript. Later I decided to make a pentris version and add some graphics. Then i gradually expanded the game adding some other new features.
+The beginning was a video by Javidx9 about programming tetris. I converted the code to Javascript. Later I decided to make a pentris version and add some graphics. Then I gradually expanded the game adding some other new features.
 
 Now added cloud save functionality. I included a sample of my very very simple backend server code, which only can save and load one file.
 If failed to load save from cloud, the game uses local storage of the browser.
