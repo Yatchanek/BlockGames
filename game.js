@@ -236,7 +236,7 @@ class Game {
     
 saveScores() {
             window.localStorage.setItem('BlockMayhemScores', JSON.stringify(this.highScores));
-            fetch('Your server URL', {
+            fetch('https://blockmayhem.glitch.me', {
     method: 'POST',
     body: JSON.stringify(this.highScores),
     headers: {
@@ -250,7 +250,7 @@ saveScores() {
 }
 
 loadScores() {
-    fetch('Your server URL', {
+    fetch('https://blockmayhem.glitch.me/scores', {
       headers: {
         "Access-Control-Allow-Origin": "*"
       }
