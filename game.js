@@ -235,31 +235,35 @@ class Game {
 
     
 saveScores() {
-            window.localStorage.setItem('BlockMayhemScores', JSON.stringify(this.highScores));
-            fetch('Your server URL', {
-    method: 'POST',
-    body: JSON.stringify(this.highScores),
-    headers: {
-        'content-type': 'application/json; charset=UTF-8'
+    if (!this.failedLoad) {
+        window.localStorage.setItem('BlockMayhemScores', JSON.stringify(this.highScores));
+        fetch('Your URL', {
+        method: 'POST',
+        body: JSON.stringify(this.highScores),
+        headers: {
+            'content-type': 'application/json; charset=UTF-8'
+        }
+     })
     }
- })
-    
-    if (this.failedLoad) {
+
+    else {
         window.localStorage.setItem('BlockMayhemScoresLoadFail', JSON.stringify(this.highScores));
     }
 }
 
 loadScores() {
-    fetch('Your server URL', {
+    fetch('Your URL', {
       headers: {
         "Access-Control-Allow-Origin": "*"
       }
     }).then(response => response.json())
       .then(data => {
           this.highScores = JSON.parse(data);
+          if (data === null || data === undefined) {
+            this.failedLoad = true;
+          }
       })
-      if (this.highScores.tetrisScore === [] || this.highScores.pentrisScore === []) {
-        this.failedLoad = true;
+      if (this.failedLoad) {
         if (window.localStorage.hasOwnProperty('BlockMayhemScoresLoadFail')) {
             this.highScores = JSON.parse(localStorage.getItem('BlockMayhemScoresLoadFail'));
         } else {
@@ -399,7 +403,10 @@ restartGame() {
     this.enteredName = '';
     this.enteredPlace = 0;
     this.newRecord = false;
-    this.nextState = this.gameState = 'titleScreen';   
+    this.nextState = this.gameState = 'titleScreen';
+    if (this.failedLoad) {
+        this.loadScores();
+    }
 }
 
 findLongestNameAndScore() {
