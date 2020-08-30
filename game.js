@@ -2,8 +2,7 @@ class Game {
     constructor() {
         this.wWidth = window.innerWidth;
         this.wHeight = window.innerHeight;
-        this.scale = this.wWidth / window.screen.width;       
-        this.lastTime = 0;
+        this.scale = Math.min(this.wWidth / 1920, this.height / 937);       
         this.gameState = 'titleScreen';
         this.nextState = 'titleScreen';
         this.grid = [];
@@ -40,6 +39,7 @@ class Game {
             '......XXX..X....X........'
         ];
         this.blocks;
+        this.loop = this.gameLoop.bind(this);
         this.rows = 18;
         this.cols = 12;
         this.gameMode = TETRIS;
@@ -48,33 +48,37 @@ class Game {
         this.hardCoreMode = false;
         this.advanceLevel = false;
         this.keyHold = false;
+        this.failedLoad = false;
+        this.newRecord = false;
+        this.hints = true;
+        this.hintsAllowed = true;
         this.tick = 0;
         this.lastTick = 0;
         this.linesCount = 0;
         this.elapsedTime = 0;
-        this.tickElapsedTime = 0;
         this.lastTime = 0;
+        this.tickElapsedTime = 0;
         this.delta = 0;
         this.score = 0;
         this.level = 1;
         this.bonus = 0;
-        if (window.localStorage.hasOwnProperty('BlockMayhemScores')) {
-            this.highScores = JSON.parse(window.localStorage.getItem('BlockMayhemScores'));
-        }
-        else {
-            this.highScores = {
-                tetrisScore: 0,
-                pentrisScore: 0,
-            }
+        this.enteredName = '';
+        this.enteredPlace = 0;
+        this.highScores = {
+            tetrisScore: [],
+            pentrisScore: [],
         }
         this.skillLevel = 0;
-        this.hints = true;
-        this.hintsAllowed = true;
         this.rotation = 0;
         this.speed = 1000;
         this.randomRowChance = 0.05;
         this.titlePos1 = (this.wWidth - title.width) / 2;
         this.titlePos2 = this.titlePos1 + this.wWidth;
+        this.longestName1 = 0;
+        this.longestName2 = 0;
+        this.highestScore1 = 0;
+        this.highestScore2 = 0;
+        this.loadScores();
     }
 
     rotate(px, py, r) {
@@ -222,83 +226,51 @@ class Game {
         this.originY = Math.floor((this.wHeight - this.gHeight) / 2);
 
         this.ongoingPlay = true;
+        this.findLongestNameAndScore();        
         this.createGrid();
         this.currentPiece = this.nextPiece = null;
         this.selectNewPiece();
         this.nextState = 'playing'
     }
 
-    handleClick() {
+    
+saveScores() {
+            window.localStorage.setItem('BlockMayhemScores', JSON.stringify(this.highScores));
+            fetch('Your server URL', {
+    method: 'POST',
+    body: JSON.stringify(this.highScores),
+    headers: {
+        'content-type': 'application/json; charset=UTF-8'
+    }
+ })
+    
+    if (this.failedLoad) {
+        window.localStorage.setItem('BlockMayhemScoresLoadFail', JSON.stringify(this.highScores));
+    }
+}
 
-        if (this.gameState === 'gameOver') {
-            this.restartGame();
-        }
-
-        if (this.gameState === 'titleScreen') {
-            if (this.isClicked((this.wWidth - 476 * this.scale) / 2, (this.wWidth + 476 * this.scale) / 2,
-                       this.wHeight - (120 * this.scale), this.wHeight - 30 * this.scale))  {
-                    this.configure();
+loadScores() {
+    fetch('Your server URL', {
+      headers: {
+        "Access-Control-Allow-Origin": "*"
+      }
+    }).then(response => response.json())
+      .then(data => {
+          this.highScores = JSON.parse(data);
+      })
+      if (this.highScores.tetrisScore === [] || this.highScores.pentrisScore === []) {
+        this.failedLoad = true;
+        if (window.localStorage.hasOwnProperty('BlockMayhemScoresLoadFail')) {
+            this.highScores = JSON.parse(localStorage.getItem('BlockMayhemScoresLoadFail'));
+        } else {
+            for (let i = 0; i < 7; i++) {
+                this.highScores.tetrisScore.push({name: 'Tetris', score: 10});
+                this.highScores.pentrisScore.push({name: 'Pentris', score: 10});
             }
-        
-
-        //Game Mode
-            if(this.isClicked(450 * this.scale,  620 * this.scale, 
-                          this.wHeight * 0.5, this.wHeight * 0.5 + 37 * this.scale)) {
-                           
-                this.gameMode = TETRIS;
-            }
-
-            if(this.isClicked(720 * this.scale, 922 * this.scale, 
-                          this.wHeight * 0.5, this.wHeight * 0.5 + 37 * this.scale)) {
-                            
-                this.gameMode = PENTRIS;
-        }
-
-        //Skill Level
-        if(this.isClicked(430 * this.scale,  474 * this.scale, 
-            this.wHeight * 0.6, this.wHeight * 0.6 + 37 * this.scale)) {
-             
-                this.skillLevel = 0;
-        }
-
-        if(this.isClicked(500 * this.scale,  544 * this.scale, 
-            this.wHeight * 0.6, this.wHeight * 0.6 + 37 * this.scale)) {
-             
-                this.skillLevel = 3;
-        }
-
-        if(this.isClicked(570 * this.scale,  614 * this.scale, 
-            this.wHeight * 0.6, this.wHeight * 0.6 + 37 * this.scale)) {
-             
-                this.skillLevel = 6;
-        }
-
-        if(this.isClicked(640 * this.scale,  688 * this.scale, 
-            this.wHeight * 0.6, this.wHeight * 0.6 + 37 * this.scale)) {
-             
-                this.skillLevel = 9;
-        }
-
-        //Hardcore Mode
-        if(this.isClicked(552 * this.scale, 643 * this.scale, this.wHeight * 0.7, this.wHeight * 0.7 + 37 * this.scale)) {
-            this.hardCoreMode = true;
-        }
-
-        if(this.isClicked(684 * this.scale, 794 * this.scale, this.wHeight * 0.7, this.wHeight * 0.7 + 37 * this.scale)) {
-            this.hardCoreMode = false;
-        }
+        }   
     }
 
-
-    ctx.drawImage(textSheet, 0, 122, 31, 30, 430 * this.scale, this.wHeight * 0.6, 44 * this.scale, 37 * this.scale)
-    ctx.drawImage(textSheet, 94, 122, 31, 30, 500 * this.scale, this.wHeight * 0.6, 44 * this.scale, 37 * this.scale)
-    ctx.drawImage(textSheet, 191, 122, 31, 30, 570 * this.scale, this.wHeight * 0.6, 44 * this.scale, 37 * this.scale)
-    ctx.drawImage(textSheet, 287, 122, 31, 30, 640 * this.scale, this.wHeight * 0.6, 44 * this.scale, 37 * this.scale)
-
-
-
-    }
-
+}
 
 cls() {
     ctx.save();
@@ -348,10 +320,10 @@ drawInfo() {
      ctx.drawImage(textSheet, 130, 0, 235, 35, 30 * this.scale, 20 * this.scale, 235 * this.scale, 35 * this.scale);
      let s;
      if (this.gameMode === TETRIS) {
-        s = this.highScores.tetrisScore.toString();
+        s = this.highScores.tetrisScore[0].score.toString();
     }
     else {
-       s = this.highScores.pentrisScore.toString();
+       s = this.highScores.pentrisScore[0].score.toString();
     }
      
      let count = 0;
@@ -395,11 +367,19 @@ isClicked(x1, x2, y1, y2) {
     return (mouseX > x1 && mouseX < x2 && mouseY > y1 && mouseY < y2);
 }
 
-run() {
-    requestAnimationFrame(() => this.gameLoop());
+sortScores(scores) {
+    scores.sort((a, b) => b.score - a.score);
+    scores.pop();
+    for (let i = 0; i < 7; i++) {
+        if (scores[i].name === '' && scores[i].score === this.score) {
+            this.enteredPlace = i;
+            return;
+        }
+    }
 }
 
 resize() {
+    this.sWidth = window.screen.width;
     this.wWidth = gameWindow.width = window.innerWidth;
     this.wHeight = gameWindow.height = window.innerHeight;
     this.cellSize = Math.floor(this.wHeight * 0.95 / this.rows);
@@ -407,7 +387,6 @@ resize() {
     this.gameWidth = this.cellSize * this.cols;
     this.originX = Math.floor((this.wWidth - this.gWidth) / 2); 
     this.originY = Math.floor((this.wHeight - this.gHeight) / 2);
-    this.scale = this.wWidth / sWidth;
 }
 
 restartGame() {
@@ -417,9 +396,105 @@ restartGame() {
     this.bonus = 0;
     this.speed = 1000;
     this.keys = [];
-    this.ongoingPlay = false;
+    this.enteredName = '';
+    this.enteredPlace = 0;
+    this.newRecord = false;
     this.nextState = this.gameState = 'titleScreen';   
 }
+
+findLongestNameAndScore() {
+    ctx.save();
+    ctx.font = '40px "Comic Sans MS"';
+    for (let i = 0; i < 7; i++) {
+        if (ctx.measureText(this.highScores.tetrisScore[i].name).width > this.longestName1) {
+            this.longestName1 = ctx.measureText(this.highScores.tetrisScore[i].name).width;
+        }
+        if (ctx.measureText(this.highScores.pentrisScore[i].name).width > this.longestName2) {
+            this.longestName2 = ctx.measureText(this.highScores.pentrisScore[i].name).width;
+        }
+        if (ctx.measureText(this.highScores.tetrisScore[i].score).width > this.highestScore1) {
+            this.highestScore1 = ctx.measureText(this.highScores.tetrisScore[i].score).width;
+        }
+        if (ctx.measureText(this.highScores.pentrisScore[i].score).width > this.highestScore2) {
+            this.highestScore2 = ctx.measureText(this.highScores.pentrisScore[i].score).width;
+        }
+    }
+    ctx.restore();
+}
+
+handleClick() {
+
+    if (this.gameState === 'gameOver') {
+        this.ongoingPlay = false;
+        this.lastTick = this.tick;
+        if(this.newRecord) {
+            this.nextState = 'enteringName';
+        }
+        else {
+            this.nextState = 'hallOfFame';
+        }
+    }
+
+    if (this.gameState === 'hallOfFame') {
+        this.restartGame();
+    }
+
+    if (this.gameState === 'titleScreen') {
+        if (this.isClicked((this.wWidth - 476 * this.scale) / 2, (this.wWidth + 476 * this.scale) / 2,
+                   this.wHeight - (120 * this.scale), this.wHeight - 30 * this.scale))  {
+                this.configure();
+        }
+    
+
+    //Game Mode
+        if(this.isClicked(450 * this.scale,  620 * this.scale, 
+                      this.wHeight * 0.5, this.wHeight * 0.5 + 37 * this.scale)) {
+                       
+            this.gameMode = TETRIS;
+        }
+
+        if(this.isClicked(720 * this.scale, 922 * this.scale, 
+                      this.wHeight * 0.5, this.wHeight * 0.5 + 37 * this.scale)) {
+                        
+            this.gameMode = PENTRIS;
+    }
+
+    //Skill Level
+    if(this.isClicked(430 * this.scale,  474 * this.scale, 
+        this.wHeight * 0.6, this.wHeight * 0.6 + 37 * this.scale)) {
+         
+            this.skillLevel = 0;
+    }
+
+    if(this.isClicked(500 * this.scale,  544 * this.scale, 
+        this.wHeight * 0.6, this.wHeight * 0.6 + 37 * this.scale)) {
+         
+            this.skillLevel = 3;
+    }
+
+    if(this.isClicked(570 * this.scale,  614 * this.scale, 
+        this.wHeight * 0.6, this.wHeight * 0.6 + 37 * this.scale)) {
+         
+            this.skillLevel = 6;
+    }
+
+    if(this.isClicked(640 * this.scale,  688 * this.scale, 
+        this.wHeight * 0.6, this.wHeight * 0.6 + 37 * this.scale)) {
+         
+            this.skillLevel = 9;
+    }
+
+    //Hardcore Mode
+    if(this.isClicked(552 * this.scale, 643 * this.scale, this.wHeight * 0.7, this.wHeight * 0.7 + 37 * this.scale)) {
+        this.hardCoreMode = true;
+    }
+
+    if(this.isClicked(684 * this.scale, 794 * this.scale, this.wHeight * 0.7, this.wHeight * 0.7 + 37 * this.scale)) {
+        this.hardCoreMode = false;
+    }
+ }
+}
+
 
 checkKeyInput() {
 
@@ -476,6 +551,10 @@ checkKeyInput() {
     }
 
     if (this.gameState === 'gameOver' && this.keys.length && this.tick - this.lastTick > 10) {
+        this.ongoingPlay = false;
+        this.newRecord ? this.nextState = 'enteringName' : this.nextState = 'hallOfFame';
+    }
+    if (this.gameState === 'hallOfFame' && this.keys.length && this.tick - this.lastTick > 10) {
         this.restartGame();
     }
 
@@ -496,11 +575,13 @@ calculateHighestRow() {
 
 gameLoop() {
     let timestamp = performance.now();
-    this.scale = this.wWidth / sWidth;
+    this.scale = Math.min(this.wWidth / 1920, this.wHeight / 937);
     this.delta = timestamp - this.lastTime;
     this.elapsedTime += this.delta;
     this.tickElapsedTime += this.delta;
     this.lastTime = timestamp;
+
+    this.checkKeyInput();
 
     if (this.tickElapsedTime > 50) {
         this.tickElapsedTime = 0;
@@ -548,7 +629,7 @@ gameLoop() {
         ctx.drawImage(textSheet, 0, 122, 31, 30, 430 * this.scale, this.wHeight * 0.6, 44 * this.scale, 37 * this.scale)
         ctx.drawImage(textSheet, 94, 122, 31, 30, 500 * this.scale, this.wHeight * 0.6, 44 * this.scale, 37 * this.scale)
         ctx.drawImage(textSheet, 191, 122, 31, 30, 570 * this.scale, this.wHeight * 0.6, 44 * this.scale, 37 * this.scale)
-        ctx.drawImage(textSheet, 287, 122, 31, 30, 640 * this.scale, this.wHeight * 0.6, 44 * this.scale, 37 * this.scale)
+        ctx.drawImage(textSheet, 287, 122, 31, 30, 640 * this.scale, this.wHeight * 0.6, 44 * this.scale, 37 * this.scale)  
 
         //Hardcore Mode
         ctx.drawImage(textSheet, 370, 40, 402, 37, 50 * this.scale, this.wHeight * 0.7, 402 * this.scale, 37 * this.scale)
@@ -607,7 +688,6 @@ gameLoop() {
      if (this.ongoingPlay) {
         this.drawGrid();
         this.drawInfo();
-        this.checkKeyInput()
         this.drawPiece();
 
         if(this.hints) {
@@ -615,9 +695,6 @@ gameLoop() {
             this.drawShadow();
         }
     }
-
-
-
 
     if (this.gameState === 'paused') {
         ctx.save();
@@ -631,21 +708,117 @@ gameLoop() {
         ctx.drawImage(textSheet, 0, 160, 880, 100, this.wWidth / 2 - 440 * this.scale,
                       this.wHeight / 2 - 50 * this.scale, 880 * this.scale, 100 * this.scale);
         
-        let newRecord = false;
-        if (this.gameMode ===  TETRIS && this.score > this.highScores.tetrisScore) {
-                this.highScores.tetrisScore = this.score;
-                newRecord = true;
+        if (!this.newRecord && this.gameMode ===  TETRIS && this.score > 
+             this.highScores.tetrisScore[this.highScores.tetrisScore.length-1].score) {
+                this.highScores.tetrisScore.push({name: '', score: this.score});
+                this.newRecord = true;
+                this.sortScores(this.highScores.tetrisScore)
+                this.findLongestNameAndScore();            
             }
             
-        else if(this.gameMode === PENTRIS && this.score > this.highScores.pentrisScore) {
-                this.highScores.pentrisScore = this.score;
-                newRecord = true;
+        else if(!this.newRecord && this.gameMode === PENTRIS && this.score > 
+                this.highScores.pentrisScore[this.highScores.pentrisScore.length - 1].score) {
+                this.highScores.pentrisScore.push({name: '', score: this.score});
+                this.newRecord = true;
+                this.sortScores(this.highScores.pentrisScore);
+                this.findLongestNameAndScore();            
             }    
-        
-        if(newRecord) {
-            window.localStorage.setItem('BlockMayhemScores', JSON.stringify(this.highScores));          
+    }
+
+    if (this.gameState === 'hallOfFame' || this.gameState === 'enteringName') {
+
+        //Hall of Fame
+        ctx.drawImage(textSheet, 0, 375, 1200, 125, (this.wWidth - 1200 * this.scale) / 2, 50 * this.scale, 1200 * this.scale, 125 * this.scale);
+        ctx.save();
+        ctx.globalAlpha = 0.6 + 0.4 * Math.sin(this.elapsedTime / 500)
+        ctx.drawImage(textSheet, 0, 520, 1200, 125, (this.wWidth - 1200 * this.scale) / 2, 50 * this.scale, 1200 * this.scale, 125 * this.scale);
+        ctx.restore();
+
+        ctx.drawImage(textSheet, 0, 670, 295, 62, 100 * this.scale, this.wHeight * 0.3, 295 * this.scale, 62 * this.scale)
+        ctx.drawImage(textSheet, 300, 670, 353, 62, this.wWidth - 
+            (100 + this.longestName2 + 20 + this.highestScore2) * this.scale, this.wHeight * 0.3, 353 * this.scale, 62 * this.scale)
+
+        ctx.save();
+        ctx.fillStyle = `rgb(206, 206, 12)`;
+        ctx.font = `${Math.floor(sWidth * 0.02)}px "Comic Sans MS"`;
+
+        for (let i = 0; i < 7; i++) {
+            if (this.gameState === 'enteringName' && this.gameMode === TETRIS && i === this.enteredPlace) {
+              ctx.save();
+              ctx.fillStyle = `rgb(${206 + 50 * Math.sin(this.elapsedTime / 250)}, ${206 + 50 * Math.cos(this.elapsedTime / 250)}, 12)`;
+              ctx.globalAlpha = 0.6 + 0.4 * Math.sin(this.elapsedTime / 250);
+            }
+
+            ctx.fillText(this.highScores.tetrisScore[i].name, 100 * this.scale, this.wHeight * 0.5 + i * 60 * this.scale);
+            ctx.fillText(this.highScores.tetrisScore[i].score, 100 * this.scale + this.longestName1 + 20 * this.scale, this.wHeight * 0.5 + i * 60 * this.scale);
+            
+            if (this.gameState === 'enteringName' && this.gameMode === TETRIS && i === this.enteredPlace) {
+            ctx.restore();
+            }
+
+            if (this.gameState === 'enteringName' && this.gameMode === PENTRIS && i === this.enteredPlace) {
+                ctx.save();
+                ctx.fillStyle = `rgb(${206 + 50 * Math.sin(this.elapsedTime / 250)}, ${206 + 50 * Math.cos(this.elapsedTime / 250)}, 12)`;
+                ctx.globalAlpha = 0.6 + 0.4 * Math.sin(this.elapsedTime / 250);
+            }
+
+            ctx.fillText(this.highScores.pentrisScore[i].name, this.wWidth - 
+                        (100 + this.longestName2 + 20 + this.highestScore2) * this.scale, 
+                         this.wHeight * 0.5 + i * 60 * this.scale);
+            ctx.fillText(this.highScores.pentrisScore[i].score, this.wWidth - 
+                        (100 + this.highestScore2) * this.scale, this.wHeight * 0.5 + i * 60 * this.scale);
+           
+            if (this.gameState === 'enteringName' && this.gameMode === PENTRIS && i === this.enteredPlace) {
+                ctx.restore();
+            }
+        }
+    }
+    
+    if (this.gameState === 'enteringName') {
+        ctx.save();
+        ctx.strokeStyle = '#cece0c';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(this.wWidth / 2 - 200, this.wHeight * 0.8);
+        ctx.lineTo(this.wWidth / 2 + 200, this.wHeight * 0.8);
+        ctx.stroke();
+        ctx.fillStyle = '#cece0c';
+        ctx.font = `${Math.floor(sWidth * 0.02)}px "Snap ITC"`;
+        let txt = 'Enter your name'
+        let w = ctx.measureText(txt).width;
+        ctx.fillText(txt, (this.wWidth - w)/2, this.wHeight * 0.8 + 50 * this.scale);
+        ctx.font = `${Math.floor(sWidth * 0.02)}px "Comic Sans MS"`;
+        ctx.fillText(this.enteredName, this.wWidth / 2 - 200, this.wHeight * 0.8 - 15);
+        ctx.restore();
+
+        if (this.gameMode === TETRIS) {
+            this.highScores.tetrisScore[this.enteredPlace].name = this.enteredName;
+             if(ctx.measureText(this.highScores.tetrisScore[this.enteredPlace].name).width > this.longestName1) {
+
+                    this.longestName1 = ctx.measureText(this.highScores.tetrisScore[this.enteredPlace].name).width;
+             }
+        }
+        else {
+            this.highScores.pentrisScore[this.enteredPlace].name = this.enteredName;
+            if(ctx.measureText(this.highScores.pentrisScore[this.enteredPlace].name).width > this.longestName2) {
+                this.longestName2 = ctx.measureText(this.highScores.pentrisScore[this.enteredPlace].name).width;
+            }
         }
         
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.globalAlpha = 0.6 + 0.4 * Math.sin(this.elapsedTime / 100);
+        ctx.strokeStyle = '#cece0c';
+        ctx.lineWidth = 3;
+        
+        ctx.font = `${Math.floor(sWidth * 0.02)}px "Comic Sans MS`;
+        w = ctx.measureText(this.enteredName).width + 5;
+        ctx.moveTo(this.wWidth / 2 - 200 + w, this.wHeight * 0.8 - 55)
+        ctx.lineTo(this.wWidth / 2 - 200 + w, this.wHeight * 0.8 - 10)
+        ctx.stroke();
+        ctx.restore();
+
     }
 
     if (this.gameState === 'removing') {
@@ -785,6 +958,6 @@ gameLoop() {
     }
 
     this.gameState = this.nextState;
-    requestAnimationFrame(() => this.gameLoop());
+    requestAnimationFrame(this.loop);
 }
 }

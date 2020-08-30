@@ -34,7 +34,7 @@ function assetLoader() {
     if (resCount === 5) {
      gameWindow.width = window.innerWidth;
      gameWindow.height = window.innerHeight;
-     game.run();
+     requestAnimationFrame(game.loop);
     }
 }
 
@@ -42,7 +42,27 @@ function random(range) {
     return Math.floor(Math.random() * range);
 }
 
-window.addEventListener('keydown', (e) => game.keys[e.keyCode] = true);
+window.addEventListener('keydown', (e) => { 
+
+    if(game.gameState === 'enteringName') {
+        if(e.keyCode === 8 && game.enteredName.length) {
+            let g = game.enteredName.split('');
+            g.pop();
+            game.enteredName = g.join('');
+            game.findLongestNameAndScore();
+        } else if (e.keyCode >= 65 && e.keyCode <= 90 && game.enteredName.length < 20) {
+            game.enteredName = game.enteredName.concat(e.key);
+        } else if (e.keyCode === 32 && game.enteredName.length < 20) {
+            game.enteredName = game.enteredName.concat(' ');
+        }
+        else if (e.keyCode === 13) {
+            game.saveScores();
+            game.nextState = 'hallOfFame'
+        }
+    } else {
+        game.keys[e.keyCode] = true;
+    }
+});
 window.addEventListener('keyup', () => game.keyHold = false);
 window.addEventListener('click', () => game.handleClick());
 window.addEventListener('resize', () => game.resize());
