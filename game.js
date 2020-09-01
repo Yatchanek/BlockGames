@@ -185,7 +185,7 @@ class Game {
     dropSelf() {
         while(this.fits(this.currentX, this.currentY + 1, this.rotation)) {
             this.currentY++;
-            this.bonus += 0.05;
+            this.bonus += 0.025;
         }
         this.droped = true;
     }
@@ -921,16 +921,17 @@ gameLoop() {
 
                     if (this.fullLines.length) {
                          this.bonus += this.fullLines.length * 0.25;
-                         this.bonus *= (1+0.05 * this.skillLevel);
+                         this.bonus *= (1+0.07 * this.skillLevel);
                          if(this.hardCoreMode) {
                              this.bonus *=1.2;
                          }
-                         if (this.fullLines.length === 5) this.bonus *= 1.5;
-                         this.score += this.fullLines.length * 50 * (1+this.bonus);
-                         this.score = Math.floor(this.score);
-                         this.nextState = 'removing';
-                         this.currentPiece = null;
-                         this.lastTick = this.tick;
+                         if ((this.gameMode === TETRIS && this.fullLines.length === 4) || 
+                        (this.gameMode === PENTRIS && this.fullLines.length === 5)) this.bonus *= 2;
+                            this.score += this.fullLines.length * 50 * (1+this.bonus);
+                            this.score = Math.floor(this.score);
+                            this.nextState = 'removing';
+                            this.currentPiece = null;
+                            this.lastTick = this.tick;
                     }
 
                 if (this.advanceLevel) {
