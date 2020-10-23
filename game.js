@@ -7,7 +7,7 @@ class Game {
         this.nextState = 'titleScreen';
         this.grid = [];
         this.fullLines = [];
-        this.keys = [];
+        this.keys = {};
         this.pieces = [];
         this.tetrominos = [
             '..X...X...X...X.',
@@ -38,12 +38,16 @@ class Game {
             '..X....X....XX....X......',
             '......XXX..X....X........'
         ];
+        this.allPieces = [...this.tetrominos, ...this.pentominos]
+        this.statsTxt = ['Single', 'Double', 'Triple', 'Quadruple', 'Quintuple'];
         this.blocks;
+        this.pieceCount;
         this.loop = this.gameLoop.bind(this);
         this.rows = 18;
         this.cols = 12;
         this.gameMode = TETRIS;
         this.currentPiece = null;
+        this.statPiece = null;
         this.nextPiece = null;
         this.hardCoreMode = false;
         this.advanceLevel = false;
@@ -52,8 +56,10 @@ class Game {
         this.newRecord = false;
         this.hints = true;
         this.hintsAllowed = true;
+        this.showStats = true;
         this.tick = 0;
         this.lastTick = 0;
+        this.lastClick = 0;
         this.linesCount = 0;
         this.elapsedTime = 0;
         this.lastTime = 0;
@@ -78,23 +84,95 @@ class Game {
         this.longestName2 = 0;
         this.highestScore1 = 0;
         this.highestScore2 = 0;
+        this.statistics = {
+                           0: 0, //0 - 6: Tetris Pieces, 0 - 17: Pentris Pieces
+                           1: 0,
+                           2: 0,
+                           3: 0,
+                           4: 0,
+                           5: 0,
+                           6: 0,
+                           7: 0,
+                           8: 0,
+                           9: 0,
+                           10: 0,
+                           11: 0,
+                           12: 0,
+                           13: 0,
+                           14: 0,
+                           15: 0,
+                           16: 0,
+                           17: 0,
+                           18: 0, //18 - 21: Tetris line clears, 18 - 22: Pentris line clears
+                           19: 0,
+                           20: 0,
+                           21: 0,
+                           22: 0
+        }
+
+        if (localStorage.hasOwnProperty('BlockMayhemStats')) {
+            this.allTimeStats = JSON.parse(localStorage.getItem('BlockMayhemStats'))
+        } else {
+            let d = new Date()
+            d = `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`;
+            this.allTimeStats = {
+                    'Tetris Games Played': 0,
+                    'Pentris Games Played': 0,
+                    'Started on': d,
+                    0: 0, //0 - 6: Tetris pieces
+                    1: 0,
+                    2: 0,
+                    3: 0,
+                    4: 0,
+                    5: 0,
+                    6: 0,
+                    7: 0, //7 - 24: Pentris pieces
+                    8: 0,
+                    9: 0,
+                    10: 0,
+                    11: 0,
+                    12: 0,
+                    13: 0,
+                    14: 0,
+                    15: 0,
+                    16: 0,
+                    17: 0,
+                    18: 0,
+                    19: 0,
+                    20: 0,
+                    21: 0,
+                    22: 0,
+                    23: 0,
+                    24: 0,
+                    25: 0, //25 - 28 Tetris line clears
+                    26: 0,
+                    27: 0,
+                    28: 0,
+                    29: 0, //29 - 33 Pentris line clears
+                    30: 0,
+                    31: 0,
+                    32: 0,
+                    33: 0
+            }
+        }
+
         this.loadScores();
     }
 
-    rotate(px, py, r) {
+    rotate(px, py, r, mode) {
         let pIndex = 0;
         switch(r % 4) {
             case 0:
-            pIndex = py * this.gameMode + px;
+            pIndex = py * mode + px;
             break;
             case 1:
-            pIndex = this.gameMode * (this.gameMode - 1 ) + py - (px * this.gameMode);
+            pIndex = mode * (mode - 1 ) + py - (px * mode);
             break;
             case 2:
-            pIndex = this.gameMode**2 - 1 - (py * this.gameMode) - px;
+            pIndex = mode**2 - 1 - (py * mode) - px;
             break;
             case 3:
-            pIndex = this.gameMode - 1 - py + (px * this.gameMode);
+            pIndex = mode - 1 - py + (px * mode);
             break;
         }
         return pIndex;
@@ -104,7 +182,7 @@ class Game {
         if (this.currentPiece != null) {
             for (let px = 0; px < this.gameMode; px ++) {
                 for (let py = 0; py < this.gameMode; py ++) {
-                    if (this.pieces[this.currentPiece][this.rotate(px, py, this.rotation)] === 'X') {
+                    if (this.pieces[this.currentPiece][this.rotate(px, py, this.rotation, this.gameMode)] === 'X') {
 
                         ctx.drawImage(this.blocks, this.currentPiece * 32, 0, 32, 32, this.originX + (this.currentX + px) * this.cellSize,
                                       this.originY + (this.currentY + py)* this.cellSize, this.cellSize, this.cellSize);
@@ -116,7 +194,7 @@ class Game {
         for (let px = 0; px < this.gameMode; px ++) {
             for (let py = 0; py < this.gameMode; py ++) {
 
-                if (this.pieces[this.nextPiece][this.rotate(px, py, 0)] === 'X') {
+                if (this.pieces[this.nextPiece][this.rotate(px, py, 0, this.gameMode)] === 'X') {
                     ctx.drawImage(this.blocks, this.nextPiece * 32, 0, 32, 32, this.wWidth - 7 * this.cellSize * this.scale +  px * this.cellSize * this.scale,
                                    this.cellSize * this.scale * 2 + py * this.cellSize * this.scale, this.cellSize * this.scale, this.cellSize * this.scale)
                 }
@@ -128,7 +206,7 @@ class Game {
         if (this.currentPiece != null && !this.dropped) {
             for (let px = 0; px < this.gameMode; px ++) {
                 for (let py = 0; py < this.gameMode; py ++) {
-                    if (this.pieces[this.currentPiece][this.rotate(px, py, this.rotation)] === 'X') {
+                    if (this.pieces[this.currentPiece][this.rotate(px, py, this.rotation, this.gameMode)] === 'X') {
                         ctx.save();
                         ctx.strokeStyle = 'rgba(150, 150, 150, .5)';
                         ctx.lineWidth = 1;
@@ -146,7 +224,7 @@ class Game {
         if (this.currentPiece !=null) {
             for (let px = 0; px < this.gameMode; px ++) {
                 for (let py = 0; py < this.gameMode; py ++) {
-                    let pIndex = this.rotate(px, py, r);
+                    let pIndex = this.rotate(px, py, r, this.gameMode);
                     let gIndex = (y + py) * this.cols + (x + px);
 
                     if (x + px >= 0 && x + px < this.cols) {
@@ -164,22 +242,21 @@ class Game {
     }
 
     selectNewPiece() {
-        let pieceCount = this.gameMode === TETRIS ? 7 : 18;
         if (this.nextPiece === null) {
-            this.nextPiece = Math.floor(Math.random() * pieceCount );
+            this.nextPiece = Math.floor(Math.random() * this.pieceCount);
         }
         
 
     
         this.currentPiece = this.nextPiece;
-        this.nextPiece = Math.floor(Math.random() * pieceCount);
+        this.nextPiece = Math.floor(Math.random() * this.pieceCount);
         
-        let off = pieceCount = this.gameMode === TETRIS ? 1 : 2;
+        let off = this.gameMode === TETRIS ? 1 : 2;
         this.shadowX = this.currentX = this.cols / 2 - off;
         this.shadowY = this.currentY = 0;
         this.rotation = 0;
         this.dropped = false;
-        
+        this.statistics[this.currentPiece] += 1
     }
 
     dropSelf() {
@@ -202,12 +279,14 @@ class Game {
            this.cols = 12;
            this.blocks = blocks2;
            this.pieces = this.tetrominos;
+           this.pieceCount = 7
         }
         else {
             this.rows = 24;
             this.cols = 14;
             this.blocks = blocks;
             this.pieces = this.pentominos;
+            this.pieceCount = 18
         }
 
         if (this.hardCoreMode) {
@@ -230,20 +309,42 @@ class Game {
         this.createGrid();
         this.currentPiece = this.nextPiece = null;
         this.selectNewPiece();
-        this.nextState = 'playing'
+        this.nextState = 'playing';
+
+        
     }
 
+saveStats() {
+    if (this.gameMode === TETRIS) {
+        this.allTimeStats['Tetris Games Played'] += 1
+        for (let i = 0; i < 7; i++) {
+           this.allTimeStats[i] += this.statistics[i] 
+        }
+        for (let i = 25; i < 29; i++) {
+            this.allTimeStats[i] += this.statistics[i - 7]
+        }
+
+    } else {
+        this.allTimeStats['Pentris Games Played'] += 1
+        for (let i = 7; i < 25; i++) {
+            this.allTimeStats[i] += this.statistics[i - 7] 
+         }
+         for (let i = 29; i < 34; i++) {
+             this.allTimeStats[i] += this.statistics[i - 11]
+         }
+    }
+    window.localStorage.setItem('BlockMayhemStats', JSON.stringify(this.allTimeStats))
+}
     
 saveScores() {
-    if (!this.failedLoad) {
-        window.localStorage.setItem('BlockMayhemScores', JSON.stringify(this.highScores));
-        fetch('Your URL', {
-        method: 'POST',
-        body: JSON.stringify(this.highScores),
-        headers: {
-            'content-type': 'application/json; charset=UTF-8'
+    if(!this.failedLoad) {
+      fetch('https://blockmayhem.glitch.me', {
+      method: 'POST',
+      body: JSON.stringify(this.highScores),
+      headers: {
+        'content-type': 'application/json; charset=UTF-8'
         }
-     })
+      })
     }
 
     else {
@@ -251,31 +352,64 @@ saveScores() {
     }
 }
 
-loadScores() {
-    fetch('Your URL', {
-      headers: {
-        "Access-Control-Allow-Origin": "*"
-      }
-    }).then(response => response.json())
-      .then(data => {
-          this.highScores = JSON.parse(data);
-          if (data === null || data === undefined) {
-            this.failedLoad = true;
-          }
-      })
-      if (this.failedLoad) {
-        if (window.localStorage.hasOwnProperty('BlockMayhemScoresLoadFail')) {
+async loadScores() {
+    try {
+        const response = await fetch('https://blockmayhem.glitch.me/score', {
+            headers: {
+              "Access-Control-Allow-Origin": "*"
+            }
+          })
+        const data = await response.json();
+        this.highScores = JSON.parse(data);
+    }
+    catch {
+        this.failedLoad = true;
+        this.emergencyLoadScores();
+    }
+  }
+
+async updateHighScores() {
+    try {
+        const response = await fetch('https://blockmayhem.glitch.me/score', {
+            headers: {
+              "Access-Control-Allow-Origin": "*"
+            }
+          })
+        const data = await response.json();
+        this.highScores = JSON.parse(data);
+    }
+    catch {
+        this.failedLoad = true;      
+    }
+    if (this.gameMode ===  TETRIS && this.score > 
+        this.highScores.tetrisScore[this.highScores.tetrisScore.length-1].score) {
+        this.highScores.tetrisScore.push({name: '', score: this.score});
+        this.newRecord = true;
+        this.sortScores(this.highScores.tetrisScore)
+        this.findLongestNameAndScore();            
+    }
+    
+    else if(this.gameMode === PENTRIS && this.score > 
+        this.highScores.pentrisScore[this.highScores.pentrisScore.length - 1].score) {
+        this.highScores.pentrisScore.push({name: '', score: this.score});
+        this.newRecord = true;
+        this.sortScores(this.highScores.pentrisScore);
+        this.findLongestNameAndScore();            
+    } 
+}  
+
+emergencyLoadScores(){
+          if (window.localStorage.hasOwnProperty('BlockMayhemScoresLoadFail')) {
             this.highScores = JSON.parse(localStorage.getItem('BlockMayhemScoresLoadFail'));
         } else {
             for (let i = 0; i < 7; i++) {
-                this.highScores.tetrisScore.push({name: 'Tetris', score: 10});
-                this.highScores.pentrisScore.push({name: 'Pentris', score: 10});
+                this.highScores.tetrisScore.push({name: 'Tetris', score: 100});
+                this.highScores.pentrisScore.push({name: 'Pentris', score: 100});
             }
         }   
-    }
-
 }
-
+  
+  
 cls() {
     ctx.save();
     ctx.fillStyle = `rgba(16, 25, 41, 1)`;
@@ -294,16 +428,17 @@ createGrid() {
     if (this.skillLevel > 0) {
         let top = this.rows - this.skillLevel - 2;
         let c = this.gameMode === TETRIS ? 7 : 18;
-        let gapCount;
-        do {
-            gapCount = 0;
+        let gapCount = 0;
+        
             for (let y = this.rows - 2; y > top; y--) {
+              do {
+              gapCount = 0;
                 for (let x = 1; x < this.cols - 1; x++) {
                     this.grid[y*this.cols + x] = Math.random() < 0.3 ? random(c) : null;
                     if(this.grid[y*this.cols + x] === null) gapCount++;
                 }
-            } 
-        } while (gapCount <=3 && gapCout >= this.cols - 6);
+            } while (gapCount <=3 || gapCount >= this.cols - 6);
+         } 
     }
 }
 
@@ -312,7 +447,7 @@ drawGrid() {
          for (let y = 0; y < this.rows; y++) { 
             if ((this.grid[y * this.cols + x]) != null) {
                 ctx.drawImage(this.blocks, this.grid[y * this.cols + x] * 32, 0, 32, 32, 
-                              this.originX + x * this.cellSize, this.originY + y * this.cellSize, this.cellSize, this.cellSize);
+                              this.originX + x * this.cellSize, this.originY + y * this.cellSize, this.cellSize , this.cellSize);
             }
            
         }
@@ -363,11 +498,98 @@ drawInfo() {
         }
 
         ctx.drawImage(textSheet, 0, 90, 122, 27, this.wWidth - 6 * this.cellSize * this.scale, 10 * this.scale, 122 * this.scale, 27 * this.scale)
+  
+}
 
+drawStatsPage() {
+    ctx.font = `${Math.floor(this.wWidth * 0.045)}px "Comic Sans MS"`;
+    ctx.fillStyle = `rgb(206, 206, 12)`;
+    let w = ctx.measureText('Statistics since ' + this.allTimeStats['Started on']).width;
+    ctx.baseline = 'middle'
+    ctx.fillText('Statistics since ' + this.allTimeStats['Started on'], (this.wWidth - w) / 2, this.wWidth * 0.05);
+
+    let col = 0;
+    let row = 0;
+    let pc = 0;
+    let gm = 0;
+    if (!this.cellSize) {
+        this.cellSize = Math.floor(this.wHeight * 0.95 / 18);
+    }
+
+    for (let i = 0; i < 25; i++) {
+        pc = i < 7 ? 4 : 5
+        gm = i < 7 ? TETRIS : PENTRIS
+        for (let px = 0; px < pc; px++) {
+          for (let py = 0; py < pc; py++) {
+            if (this.allPieces[i][this.rotate(px, py, 0, gm)] === 'X') {
+
+                ctx.drawImage(blocks3, i * 32, 0, 32, 32, this.wWidth* 0.05 * this.scale + px * this.cellSize * this.scale / 2.5 + col * 200 * this.scale,
+                             (this.wHeight * 0.24 + row * this.wHeight * 0.2) * this.scale + py * this.cellSize * this.scale / 2.5, this.cellSize * this.scale / 2.5, this.cellSize * this.scale / 2.5) 
+            }
+          }
+        }
+        ctx.font = `${Math.floor(this.wWidth * 0.015)}px "Comic Sans MS"`;
+        ctx.fillText(this.allTimeStats[i].toString(), this.wWidth* 0.05 * this.scale + col * 200 * this.scale + Math.floor(gm / 2) * this.cellSize * this.scale / 2.5, (this.wHeight * 0.24 + row * this.wHeight * 0.2) * this.scale + (gm + 2) * this.cellSize * this.scale / 2.5)
+        col++;
+        if (i === 6) {
+            row += 1.75;
+            col = 0;
+        }
+        if (this.wWidth* 0.05 * this.scale + 5 * this.cellSize * this.scale / 2.5 + col * 200 * this.scale > sWidth - this.wWidth* 0.05 * this.scale) {
+            col = 0;
+            row++;    
+        }
+
+      }
+      ctx.font = `${Math.floor(this.wWidth * 0.012)}px "Comic Sans MS"`;
+      ctx.fillText(`Tetris games played: ${this.allTimeStats['Tetris Games Played']}`, this.wWidth* 0.05 * this.scale, this.wHeight * 0.17)
+      ctx.fillText(`Single line clears: ${this.allTimeStats[25]},   Double line clears: ${this.allTimeStats[26]},   Triple line clears: ${this.allTimeStats[27]},   Quadruple line clears: ${this.allTimeStats[28]}`, this.wWidth* 0.05 * this.scale, this.wHeight * 0.17 + Math.floor(this.wWidth * 0.017))
+      
+      ctx.fillText(`Pentris games played: ${this.allTimeStats['Pentris Games Played']}`, this.wWidth* 0.05 * this.scale, this.wHeight * 0.5)
+      ctx.fillText(`Single line clears: ${this.allTimeStats[29]},   Double line clears: ${this.allTimeStats[30]},   Triple line clears: ${this.allTimeStats[31]},   Quadruple line clears: ${this.allTimeStats[32]},   Quintuple line clears: ${this.allTimeStats[33]}`, this.wWidth* 0.05 * this.scale, this.wHeight *0.5 + Math.floor(this.wWidth * 0.017))
+}
+
+drawStats() {
+      ctx.font = `${Math.floor(this.wWidth * 0.015)}px "Comic Sans MS"`;
+      ctx.fillStyle = `rgb(206, 206, 12)`;
+      for (let i = 0; i < this.gameMode; i++) {
+          ctx.fillText(`${this.statsTxt[i]} line clears: ${this.statistics[i+18]}`, this.wWidth / 2 + this.cols / 2 * this.cellSize + 10, this.wHeight * 0.5 + i * this.wWidth * 0.025 * this.scale)
+      }
+          
+      let col = 0
+      let row = 0
+      let sc = this.gameMode === TETRIS ? 2.5 : 3
+      let gap = this.gameMode === TETRIS ? 100 : 75
+            
+      for (let i = 0; i < this.pieceCount; i++) {
+        for (let px = 0; px < this.gameMode; px ++) {
+          for (let py = 0; py < this.gameMode; py ++) {
+
+            if (this.pieces[i][this.rotate(px, py, 0, this.gameMode)] === 'X') {
+                ctx.drawImage(this.blocks, i * 32, 0, 32, 32, this.wWidth* 0.01 * this.scale + px * this.cellSize * this.scale / sc + col * 275 * this.scale,
+                             (250 + row * gap) * this.scale + py * this.cellSize * this.scale / sc, this.cellSize * this.scale / sc, this.cellSize * this.scale / sc) 
+            }
+          }
+        }
+
+        let count = 0;
+        let s = this.statistics[i].toString()
+        for (let char of s) {
+          ctx.drawImage(textSheet, +char * 32, 122, 31, 28, (this.wWidth * 0.01 + 100 + count * 32 + col * 275) * this.scale, (275 + row * gap) * this.scale, 32 * this.scale * 0.8, 27 * this.scale * 0.8);
+          count++;
+        }
+        row++
+        if (row === 9) {
+          row = 0
+        }
+        if (i === 8) {
+          col = 1
+        }
+      } 
 }
 
 
-isClicked(x1, x2, y1, y2) {
+mouseInBounds(x1, x2, y1, y2) {
     return (mouseX > x1 && mouseX < x2 && mouseY > y1 && mouseY < y2);
 }
 
@@ -394,18 +616,21 @@ resize() {
 }
 
 restartGame() {
+    this.failedLoad = false;
+    this.loadScores();
     this.score = 0;
     this.linesCount = 0;
     this.level = 1;
     this.bonus = 0;
     this.speed = 1000;
-    this.keys = [];
     this.enteredName = '';
     this.enteredPlace = 0;
     this.newRecord = false;
+    this.keys = {}
+    this.lastClick = performance.now();
     this.nextState = this.gameState = 'titleScreen';
-    if (this.failedLoad) {
-        this.loadScores();
+    for (let key in this.statistics) {
+        this.statistics[key] = 0;
     }
 }
 
@@ -430,10 +655,11 @@ findLongestNameAndScore() {
 }
 
 handleClick() {
-
-    if (this.gameState === 'gameOver') {
+       
+      if (this.gameState === 'gameOver') {
         this.ongoingPlay = false;
         this.lastTick = this.tick;
+
         if(this.newRecord) {
             this.nextState = 'enteringName';
         }
@@ -446,60 +672,78 @@ handleClick() {
         this.restartGame();
     }
 
-    if (this.gameState === 'titleScreen') {
-        if (this.isClicked((this.wWidth - 476 * this.scale) / 2, (this.wWidth + 476 * this.scale) / 2,
+    if (this.gameState === 'infoScreen' || this.gameState === 'statsScreen') {
+        this.nextState = 'titleScreen';
+    }
+
+    if (this.gameState === 'titleScreen' && performance.now() - this.lastClick > 100) {
+        if (this.mouseInBounds((this.wWidth - 476 * this.scale) / 2, (this.wWidth + 476 * this.scale) / 2,
                    this.wHeight - (120 * this.scale), this.wHeight - 30 * this.scale))  {
                 this.configure();
         }
     
 
     //Game Mode
-        if(this.isClicked(450 * this.scale,  620 * this.scale, 
+        if(this.mouseInBounds(450 * this.scale,  620 * this.scale, 
                       this.wHeight * 0.5, this.wHeight * 0.5 + 37 * this.scale)) {
                        
             this.gameMode = TETRIS;
         }
 
-        if(this.isClicked(720 * this.scale, 922 * this.scale, 
+        if(this.mouseInBounds(720 * this.scale, 922 * this.scale, 
                       this.wHeight * 0.5, this.wHeight * 0.5 + 37 * this.scale)) {
                         
             this.gameMode = PENTRIS;
     }
 
     //Skill Level
-    if(this.isClicked(430 * this.scale,  474 * this.scale, 
+    if(this.mouseInBounds(430 * this.scale,  474 * this.scale, 
         this.wHeight * 0.6, this.wHeight * 0.6 + 37 * this.scale)) {
          
             this.skillLevel = 0;
     }
 
-    if(this.isClicked(500 * this.scale,  544 * this.scale, 
+    if(this.mouseInBounds(500 * this.scale,  544 * this.scale, 
         this.wHeight * 0.6, this.wHeight * 0.6 + 37 * this.scale)) {
          
             this.skillLevel = 3;
     }
 
-    if(this.isClicked(570 * this.scale,  614 * this.scale, 
+    if(this.mouseInBounds(570 * this.scale,  614 * this.scale, 
         this.wHeight * 0.6, this.wHeight * 0.6 + 37 * this.scale)) {
          
             this.skillLevel = 6;
     }
 
-    if(this.isClicked(640 * this.scale,  688 * this.scale, 
+    if(this.mouseInBounds(640 * this.scale,  688 * this.scale, 
         this.wHeight * 0.6, this.wHeight * 0.6 + 37 * this.scale)) {
          
             this.skillLevel = 9;
     }
 
     //Hardcore Mode
-    if(this.isClicked(552 * this.scale, 643 * this.scale, this.wHeight * 0.7, this.wHeight * 0.7 + 37 * this.scale)) {
+    if(this.mouseInBounds(552 * this.scale, 643 * this.scale, this.wHeight * 0.7, this.wHeight * 0.7 + 37 * this.scale)) {
         this.hardCoreMode = true;
     }
 
-    if(this.isClicked(684 * this.scale, 794 * this.scale, this.wHeight * 0.7, this.wHeight * 0.7 + 37 * this.scale)) {
+    if(this.mouseInBounds(684 * this.scale, 794 * this.scale, this.wHeight * 0.7, this.wHeight * 0.7 + 37 * this.scale)) {
         this.hardCoreMode = false;
     }
+
+    //View Info & View Stats
+    ctx.save();
+    ctx.font = `${Math.floor(this.wWidth * 0.015)}px "Snap ITC"`;
+    if (this.mouseInBounds(10, ctx.measureText('View Info').width, this.wHeight - this.wWidth * 0.015, this.wHeight)) {
+        this.nextState = 'infoScreen';
+    }
+    else if (this.mouseInBounds(50 + ctx.measureText('View Info').width, 50 + ctx.measureText('View Info').width + ctx.measureText('View Stats').width, this.wHeight - this.wWidth * 0.015, this.wHeight)) {
+        this.nextState = 'statsScreen';
+    }
+    ctx.restore();
  }
+      
+    
+    
 }
 
 
@@ -507,47 +751,48 @@ checkKeyInput() {
 
     if (this.gameState != 'paused' && this.gameState != 'titleScreen') {
         //Left Arrow
-        if (this.keys[37] && !this.dropped && this.fits(this.currentX-1, this.currentY, this.rotation)) {
+        if (this.keys['ArrowLeft'] && !this.dropped && this.fits(this.currentX-1, this.currentY, this.rotation)) {
             this.currentX--;
     }
 
     //Right Arrow
-    if (this.keys[39] && !this.dropped && this.fits(this.currentX+1, this.currentY, this.rotation)) {
+    if (this.keys['ArrowRight'] && !this.dropped && this.fits(this.currentX+1, this.currentY, this.rotation)) {
         this.currentX++;
         }
      //Up Arrow
-        if (this.keys[38] && !this.dropped && !this.keyHold && this.fits(this.currentX, this.currentY, this.rotation+1)) {
+        if (this.keys['ArrowUp'] && !this.dropped && !this.keyHold && this.fits(this.currentX, this.currentY, this.rotation+1)) {
         this.rotation++;
         this.keyHold = true;
         }
     //Down Arrow
-        if (this.keys[40] && this.fits(this.currentX, this.currentY+1, this.rotation)) {
+        if (this.keys['ArrowDown'] && this.fits(this.currentX, this.currentY+1, this.rotation)) {
         this.currentY++;
         }
     //P
-    if(this.keys[80]) {
-        if (this.gameState === 'playing') {
+    if(this.keys['p']) {
             this.nextState = 'paused';
-        } else if (this.gameState === 'paused')
-        {
-           this.nextState = 'playing'
-
-        }
     }
 
     //H
-    if (this.keys[72] && this.hintsAllowed) this.hints = !this.hints;
+    if (this.keys['h'] && this.hintsAllowed) this.hints = !this.hints;
 
    //SPACE
-    if (this.keys[32]) {
+    if (this.keys[' ']) {
         this.dropSelf();
         this.dropped = true;
     }
-
+    
+    if (this.keys['s']) {
+      if (this.showStats) {
+        this.showStats = false;
+      } else {
+        this.showStats = true;
+      }
+    }
 
     }
 
-    if(this.keys[80]) {
+    if(this.keys['p']) {
         if (this.gameState === 'playing') {
             this.nextState = 'paused';
         } else if (this.gameState === 'paused')
@@ -557,15 +802,26 @@ checkKeyInput() {
         }
     }
 
-    if (this.gameState === 'gameOver' && this.keys.length && this.tick - this.lastTick > 10) {
+    let sum = 0
+    for (let key in this.keys) {
+      sum += this.keys[key]
+    }
+  
+    if (this.gameState === 'gameOver' && sum && this.tick - this.lastTick > 10) {
         this.ongoingPlay = false;
         this.newRecord ? this.nextState = 'enteringName' : this.nextState = 'hallOfFame';
+        this.lastTick = this.tick
     }
-    if (this.gameState === 'hallOfFame' && this.keys.length && this.tick - this.lastTick > 10) {
+
+    if ((this.gameState === 'infoScreen' || this.gameState === 'statsScreen') && sum) {
+        this.nextState = 'titleScreen'
+    }
+
+    if (this.gameState === 'hallOfFame' && sum && this.tick - this.lastTick > 10) {
         this.restartGame();
     }
 
-    this.keys = [];
+    this.keys = {}
 }
 
 calculateHighestRow() {
@@ -580,13 +836,14 @@ calculateHighestRow() {
     return 0;
 }
 
+
 gameLoop() {
     let timestamp = performance.now();
-    this.scale = Math.min(this.wWidth / 1920, this.wHeight / 937);
     this.delta = timestamp - this.lastTime;
     this.elapsedTime += this.delta;
     this.tickElapsedTime += this.delta;
     this.lastTime = timestamp;
+    this.scale = Math.min(this.wWidth / 1920, this.wHeight / 937);
 
     this.checkKeyInput();
 
@@ -597,6 +854,26 @@ gameLoop() {
     }
 
     this.cls();
+    if (this.gameState === 'infoScreen') {
+        ctx.save();
+        ctx.font = `${Math.floor(this.wWidth * 0.025)}px "Comic Sans MS"`;
+        ctx.fillStyle = `rgb(206, 206, 12)`;
+        ctx.fillText('Controls:', 25, this.wHeight * 0.1);
+        ctx.font = `${Math.floor(this.wWidth * 0.015)}px "Comic Sans MS"`;
+        ctx.fillText('Left & Right Arrow: Move left/right', 25, this.wHeight * 0.2);
+        ctx.fillText('Up Arrow: Rotate', 25, this.wHeight * 0.25);
+        ctx.fillText('Down Arrow: Move down', 25, this.wHeight * 0.3);
+        ctx.fillText('Space: Drop piece', 25, this.wHeight * 0.35);
+        ctx.fillText('H: Toggle aim assist', 25, this.wHeight * 0.4);
+        ctx.fillText('P: Pause', 25, this.wHeight * 0.45);
+        ctx.fillText('Skill Level: You start with a given number of randomly filled lines', 25, this.wHeight * 0.6);
+        ctx.fillText('Hardcore Mode: Aim assist disabled. A random line will get scrambled once in a while', 25, this.wHeight * 0.7);
+        ctx.fillText('Blocks art based on work by Leozlk. Cursor art by para. Downloaded from opengameart.org', 25, this.wHeight - this.wWidth * 0.015);
+    }
+
+    if (this.gameState === 'statsScreen') {
+        this.drawStatsPage()
+    }
 
     if (this.gameState === 'titleScreen') {
         let w = title.width;
@@ -682,12 +959,37 @@ gameLoop() {
 
 
         //Start Game Button Animation
-        if (this.isClicked((this.wWidth - 476 * this.scale) / 2, (this.wWidth + 476 * this.scale) / 2,
+        if (this.mouseInBounds((this.wWidth - 476 * this.scale) / 2, (this.wWidth + 476 * this.scale) / 2,
                        this.wHeight - (120 * this.scale), this.wHeight - 30 * this.scale)) {
                 this.scale += 0.05 * Math.sin(this.elapsedTime/150)
         }
 
         ctx.drawImage(textSheet, 370, 80, 420, 50, (this.wWidth - 420 * this.scale) / 2, this.wHeight - (120 * this.scale), 476 * this.scale, 50 * this.scale);
+
+        //Info
+        ctx.save();
+        ctx.font = `${Math.floor(this.wWidth * 0.015)}px "Snap ITC"`;
+        ctx.fillStyle = `rgb(206, 206, 12)`;
+        let txt = 'Ver. 1.1.0'
+        let w1 = ctx.measureText(txt).width;
+        ctx.fillText(txt, this.wWidth - (w1 + 10), this.wHeight - 10);
+        ctx.restore();
+
+        ctx.save();
+        ctx.font = `${Math.floor(this.wWidth * 0.015)}px "Snap ITC"`;
+        ctx.fillStyle = `rgb(206, 206, 12)`;
+        if (this.mouseInBounds(50 + ctx.measureText('View Info').width, 50 + ctx.measureText('View Info').width + ctx.measureText('View Stats').width, this.wHeight - this.wWidth * 0.015, this.wHeight)) {
+            ctx.fillStyle = `rgb(206, 106, 12)`;
+        }
+        ctx.fillText('View Stats', 50 + ctx.measureText('View Info').width , this.wHeight - 10)
+        ctx.fillStyle = `rgb(206, 206, 12)`;
+        if (this.mouseInBounds(10, ctx.measureText('View Info').width, this.wHeight - this.wWidth * 0.015, this.wHeight)) {
+            ctx.fillStyle = `rgb(206, 106, 12)`;
+        }
+ 
+        ctx.fillText('View Info', 10, this.wHeight - 10);
+
+        ctx.restore();
 
         ctx.drawImage(cursor, mouseX - 32, mouseY - 32);
     }
@@ -695,6 +997,9 @@ gameLoop() {
      if (this.ongoingPlay) {
         this.drawGrid();
         this.drawInfo();
+        if (this.showStats) {
+          this.drawStats()
+        }
         this.drawPiece();
 
         if(this.hints) {
@@ -714,22 +1019,12 @@ gameLoop() {
     if (this.gameState === 'gameOver') {
         ctx.drawImage(textSheet, 0, 160, 880, 100, this.wWidth / 2 - 440 * this.scale,
                       this.wHeight / 2 - 50 * this.scale, 880 * this.scale, 100 * this.scale);
-        
-        if (!this.newRecord && this.gameMode ===  TETRIS && this.score > 
-             this.highScores.tetrisScore[this.highScores.tetrisScore.length-1].score) {
-                this.highScores.tetrisScore.push({name: '', score: this.score});
-                this.newRecord = true;
-                this.sortScores(this.highScores.tetrisScore)
-                this.findLongestNameAndScore();            
-            }
-            
-        else if(!this.newRecord && this.gameMode === PENTRIS && this.score > 
-                this.highScores.pentrisScore[this.highScores.pentrisScore.length - 1].score) {
-                this.highScores.pentrisScore.push({name: '', score: this.score});
-                this.newRecord = true;
-                this.sortScores(this.highScores.pentrisScore);
-                this.findLongestNameAndScore();            
-            }    
+        if(!this.newRecord && (this.gameMode ===  TETRIS && this.score > 
+             this.highScores.tetrisScore[this.highScores.tetrisScore.length-1].score || this.gameMode === PENTRIS && this.score > 
+                this.highScores.pentrisScore[this.highScores.pentrisScore.length - 1].score)) {
+          this.newRecord = true;
+          this.updateHighScores();
+        }
     }
 
     if (this.gameState === 'hallOfFame' || this.gameState === 'enteringName') {
@@ -743,8 +1038,10 @@ gameLoop() {
 
         ctx.drawImage(textSheet, 0, 670, 295, 62, 100 * this.scale, this.wHeight * 0.3, 295 * this.scale, 62 * this.scale)
         ctx.drawImage(textSheet, 300, 670, 353, 62, this.wWidth - 
-            (100 + this.longestName2 + 20 + this.highestScore2) * this.scale, this.wHeight * 0.3, 353 * this.scale, 62 * this.scale)
-
+                (100 + Math.max((this.longestName2 + 20 + this.highestScore2), 295 * this.scale)) * this.scale, this.wHeight * 0.3, 353 * this.scale, 62 * this.scale)    
+        
+    
+        
         ctx.save();
         ctx.fillStyle = `rgb(206, 206, 12)`;
         ctx.font = `${Math.floor(sWidth * 0.02)}px "Comic Sans MS"`;
@@ -790,11 +1087,11 @@ gameLoop() {
         ctx.lineTo(this.wWidth / 2 + 200, this.wHeight * 0.8);
         ctx.stroke();
         ctx.fillStyle = '#cece0c';
-        ctx.font = `${Math.floor(sWidth * 0.02)}px "Snap ITC"`;
+        ctx.font = `${Math.floor(this.wWidth * 0.02)}px "Snap ITC"`;
         let txt = 'Enter your name'
         let w = ctx.measureText(txt).width;
         ctx.fillText(txt, (this.wWidth - w)/2, this.wHeight * 0.8 + 50 * this.scale);
-        ctx.font = `${Math.floor(sWidth * 0.02)}px "Comic Sans MS"`;
+        ctx.font = `${Math.floor(this.wWidth * 0.02)}px "Comic Sans MS"`;
         ctx.fillText(this.enteredName, this.wWidth / 2 - 200, this.wHeight * 0.8 - 15);
         ctx.restore();
 
@@ -846,7 +1143,8 @@ gameLoop() {
 
                 }
             });
-
+            
+            this.statistics[this.fullLines.length + 17] += 1
             this.fullLines = [];
             this.selectNewPiece();
             this.bonus = 0;
@@ -864,7 +1162,7 @@ gameLoop() {
                 this.grid[this.highestRow * this.cols + px] = Math.random() < 0.33 ? null : random(c);
                 if (this.grid[this.highestRow * this.cols + px] === null) gapCount++;
             }   
-        } while (gapCount >Math.floor(this.rows / 3))
+        } while (gapCount > Math.floor(this.rows / 3))
 
 
         if (this.tick - this.lastTick > 10) {
@@ -883,6 +1181,7 @@ gameLoop() {
             this.lastTick = this.tick;
             this.dropped = true;
             this.nextState = 'gameOver';
+            this.saveStats();
         }
 
         if (this.elapsedTime > this.speed) {
@@ -897,7 +1196,7 @@ gameLoop() {
                 this.dropped = true;
                 for (let px = 0; px < 5; px ++) {
                     for (let py = 0; py < 5; py ++) {
-                        if (this.pieces[this.currentPiece][this.rotate(px, py, this.rotation)] === 'X') {
+                        if (this.pieces[this.currentPiece][this.rotate(px, py, this.rotation, this.gameMode)] === 'X') {
                             this.grid[(this.currentY + py) * this.cols + (this.currentX + px)] = this.currentPiece;
                         }
                     }
@@ -925,13 +1224,12 @@ gameLoop() {
                          if(this.hardCoreMode) {
                              this.bonus *=1.2;
                          }
-                         if ((this.gameMode === TETRIS && this.fullLines.length === 4) || 
-                        (this.gameMode === PENTRIS && this.fullLines.length === 5)) this.bonus *= 2;
-                            this.score += this.fullLines.length * 50 * (1+this.bonus);
-                            this.score = Math.floor(this.score);
-                            this.nextState = 'removing';
-                            this.currentPiece = null;
-                            this.lastTick = this.tick;
+                         if ((this.gameMode === TETRIS && this.fullLines.length === 4) || (this.gameMode === PENTRIS && this.fullLines.length === 5)) this.bonus *= 2;
+                         this.score += this.fullLines.length * 50 * (1+this.bonus);
+                         this.score = Math.floor(this.score);
+                         this.nextState = 'removing';
+                         this.currentPiece = null;
+                         this.lastTick = this.tick;
                     }
 
                 if (this.advanceLevel) {
