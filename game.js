@@ -547,8 +547,9 @@ drawStatsPage() {
 drawStats() {
       ctx.font = `${Math.floor(this.wWidth * 0.015)}px "Comic Sans MS"`;
       ctx.fillStyle = `rgb(206, 206, 12)`;
+      let statSpot = this.gameMode === TETRIS ? 25 : 29
       for (let i = 0; i < this.gameMode; i++) {
-          ctx.fillText(`${this.statsTxt[i]} line clears: ${this.statistics[i+18]}`, this.wWidth / 2 + this.cols / 2 * this.cellSize + 10, this.wHeight * 0.5 + i * this.wWidth * 0.025 * this.scale)
+          ctx.fillText(`${this.statsTxt[i]} line clears: ${this.statistics[i + statSpot]}`, this.wWidth / 2 + this.cols / 2 * this.cellSize + 10, this.wHeight * 0.5 + i * this.wWidth * 0.025 * this.scale)
       }
           
       let col = 0
@@ -869,8 +870,9 @@ gameLoop() {
         ctx.fillText('P: Pause', 25, this.wHeight * 0.45);
         ctx.fillText('D: Discard unwanted piece before it falls halfway (max 5 pieces at any given time)', 25, this.wHeight * 0.5);
         ctx.fillText('R: Release discarded piece as next piece (only if different than next piece and if last released piece has entered the board)', 25, this.wHeight * 0.55)
-        ctx.fillText('S: Toggle display of statistics during game', 25, this.wHeight * 0.6)
-        ctx.fillText('Skill Level: You start with a given number of randomly filled lines', 25, this.wHeight * 0.7);
+        ctx.fillText('   You get penalty points for finishing the game with unreleased pieces!', 25, this.wHeight * 0.6)
+        ctx.fillText('S: Toggle display of statistics during game', 25, this.wHeight * 0.65)
+        ctx.fillText('Skill Level: You start with a given number of randomly filled lines', 25, this.wHeight * 0.75);
         ctx.fillText('Hardcore Mode: Aim assist disabled. A random line will get scrambled once in a while', 25, this.wHeight * 0.8);
         ctx.fillText('Core game mechanics (piece drawing & rotation) based on C++ code by Javidx9', 25, this.wHeight * 0.9)
         ctx.fillText('Blocks art based on work by Leozlk. Cursor art by para. Downloaded from opengameart.org', 25, this.wHeight *0.95);
@@ -1158,7 +1160,8 @@ gameLoop() {
                 }
             });
             
-            this.statistics[this.fullLines.length + 17] += 1
+            let statSpot = this.gameMode === TETRIS ? 24 : 28;
+            this.statistics[statSpot + this.fullLines.length] += 1;
             this.fullLines = [];
             this.selectNewPiece();
             this.bonus = 0;

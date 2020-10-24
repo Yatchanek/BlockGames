@@ -16,7 +16,7 @@ Space - drop piece (no sliding after drop)
 H - toggle aim assist (not avaiable in hardcore mode)
 P - pause
 D - Discard unwanted piece before it falls halfway (max 5 pieces at any given time
-R: Release discarded piece as next piece (only if different than next piece and if last released piece has entered the board)
+R: Release discarded piece as next piece (only if different than next piece and if last released piece has entered the board). You get penalty points for finishing the game with unreleased pieces!
 S: Toggle display of statistics during game
 
 Skill level - you start with 3, 6 or 9 lines randomly filled with blocks
