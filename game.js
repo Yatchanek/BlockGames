@@ -8,8 +8,9 @@ class Game {
         this.grid = [];
         this.fullLines = [];
         this.keys = {};
-        this.pieces = [];
-        this.tetrominos = [
+        this.discardedPieces = [];
+        this.maxDiscard = 5;
+        this.shapes = [
             '..X...X...X...X.',
             '..X..XX...X.....',
             '.....XX..XX.....',
@@ -17,8 +18,6 @@ class Game {
             '.X...XX...X.....',
             '.X...X...XX.....',
             '..X...X..XX.....',
-        ];
-        this.pentominos = [
             '..X....X....X....X....X..',
             '......XXX...X....X.......',
             '......XXX..X.X...........',
@@ -37,10 +36,10 @@ class Game {
             '..X....X...XX...X........',
             '..X....X....XX....X......',
             '......XXX..X....X........'
-        ];
-        this.allPieces = [...this.tetrominos, ...this.pentominos]
+        ]
+        
         this.statsTxt = ['Single', 'Double', 'Triple', 'Quadruple', 'Quintuple'];
-        this.blocks;
+        this.blocks = blocks;
         this.pieceCount;
         this.loop = this.gameLoop.bind(this);
         this.rows = 18;
@@ -54,6 +53,7 @@ class Game {
         this.keyHold = false;
         this.failedLoad = false;
         this.newRecord = false;
+        this.pieceWasReleased = false;
         this.hints = true;
         this.hintsAllowed = true;
         this.showStats = true;
@@ -85,29 +85,40 @@ class Game {
         this.highestScore1 = 0;
         this.highestScore2 = 0;
         this.statistics = {
-                           0: 0, //0 - 6: Tetris Pieces, 0 - 17: Pentris Pieces
-                           1: 0,
-                           2: 0,
-                           3: 0,
-                           4: 0,
-                           5: 0,
-                           6: 0,
-                           7: 0,
-                           8: 0,
-                           9: 0,
-                           10: 0,
-                           11: 0,
-                           12: 0,
-                           13: 0,
-                           14: 0,
-                           15: 0,
-                           16: 0,
-                           17: 0,
-                           18: 0, //18 - 21: Tetris line clears, 18 - 22: Pentris line clears
-                           19: 0,
-                           20: 0,
-                           21: 0,
-                           22: 0
+                            0: 0, //0 - 6: Tetris pieces
+                            1: 0,
+                            2: 0,
+                            3: 0,
+                            4: 0,
+                            5: 0,
+                            6: 0,
+                            7: 0, //7 - 24: Pentris pieces
+                            8: 0,
+                            9: 0,
+                            10: 0,
+                            11: 0,
+                            12: 0,
+                            13: 0,
+                            14: 0,
+                            15: 0,
+                            16: 0,
+                            17: 0,
+                            18: 0,
+                            19: 0,
+                            20: 0,
+                            21: 0,
+                            22: 0,
+                            23: 0,
+                            24: 0,
+                            25: 0, //25 - 28 Tetris line clears
+                            26: 0,
+                            27: 0,
+                            28: 0,
+                            29: 0, //29 - 33 Pentris line clears
+                            30: 0,
+                            31: 0,
+                            32: 0,
+                            33: 0
         }
 
         if (localStorage.hasOwnProperty('BlockMayhemStats')) {
@@ -178,35 +189,25 @@ class Game {
         return pIndex;
     }
 
-    drawPiece() {
-        if (this.currentPiece != null) {
-            for (let px = 0; px < this.gameMode; px ++) {
-                for (let py = 0; py < this.gameMode; py ++) {
-                    if (this.pieces[this.currentPiece][this.rotate(px, py, this.rotation, this.gameMode)] === 'X') {
-
-                        ctx.drawImage(this.blocks, this.currentPiece * 32, 0, 32, 32, this.originX + (this.currentX + px) * this.cellSize,
-                                      this.originY + (this.currentY + py)* this.cellSize, this.cellSize, this.cellSize);
+    drawPiece(piece, x, y, scale, rotation) {
+        if (piece != null) {
+            let size = piece < 7 ? 4 : 5;
+            for (let px = 0; px < size; px ++) {
+                for (let py = 0; py < size; py ++) {
+                    if (this.shapes[piece][this.rotate(px, py, rotation, size)] === 'X') {
+                        ctx.drawImage(this.blocks, piece * 32, 0, 32, 32, x + px * this.cellSize * scale, y + py * this.cellSize * scale, this.cellSize * scale, this.cellSize * scale);
                     }
-                }
-            }
-        }
-
-        for (let px = 0; px < this.gameMode; px ++) {
-            for (let py = 0; py < this.gameMode; py ++) {
-
-                if (this.pieces[this.nextPiece][this.rotate(px, py, 0, this.gameMode)] === 'X') {
-                    ctx.drawImage(this.blocks, this.nextPiece * 32, 0, 32, 32, this.wWidth - 7 * this.cellSize * this.scale +  px * this.cellSize * this.scale,
-                                   this.cellSize * this.scale * 2 + py * this.cellSize * this.scale, this.cellSize * this.scale, this.cellSize * this.scale)
                 }
             }
         }
     }
 
-    drawShadow() {
-        if (this.currentPiece != null && !this.dropped) {
-            for (let px = 0; px < this.gameMode; px ++) {
-                for (let py = 0; py < this.gameMode; py ++) {
-                    if (this.pieces[this.currentPiece][this.rotate(px, py, this.rotation, this.gameMode)] === 'X') {
+    drawShadow(piece) {
+        if (piece != null && !this.dropped) {
+            let size = piece < 7 ? 4 : 5;
+            for (let px = 0; px < size; px ++) {
+                for (let py = 0; py < size; py ++) {
+                    if (this.shapes[piece][this.rotate(px, py, this.rotation, size)] === 'X') {
                         ctx.save();
                         ctx.strokeStyle = 'rgba(150, 150, 150, .5)';
                         ctx.lineWidth = 1;
@@ -219,6 +220,19 @@ class Game {
         }
     }
 
+    discardPiece() {
+        if(this.currentY < this.rows / 2 && this.discardedPieces.length < this.maxDiscard) {
+            this.discardedPieces.push(this.currentPiece);
+            this.selectNewPiece();
+        }
+    }
+
+    releasePiece() {
+        if(this.discardedPieces.length > 0 && this.nextPiece != this.discardedPieces[0] && !this.pieceWasReleased) {
+            this.nextPiece = this.discardedPieces.shift()
+            this.pieceWasReleased = true;
+        }
+    }
 
     fits(x, y, r) {
         if (this.currentPiece !=null) {
@@ -230,7 +244,7 @@ class Game {
                     if (x + px >= 0 && x + px < this.cols) {
                         if (y + py >=0 && y + py < this.rows) {
 
-                            if (this.pieces[this.currentPiece][pIndex] === 'X' && this.grid[gIndex] != null) {
+                            if (this.shapes[this.currentPiece][pIndex] === 'X' && this.grid[gIndex] != null) {
                                 return false;
                             }
                         }
@@ -243,13 +257,12 @@ class Game {
 
     selectNewPiece() {
         if (this.nextPiece === null) {
-            this.nextPiece = Math.floor(Math.random() * this.pieceCount);
+            this.nextPiece = this.countOrigin + Math.floor(Math.random() * this.pieceCount);
         }
         
-
-    
+ 
         this.currentPiece = this.nextPiece;
-        this.nextPiece = Math.floor(Math.random() * this.pieceCount);
+        this.nextPiece = this.countOrigin + Math.floor(Math.random() * this.pieceCount);
         
         let off = this.gameMode === TETRIS ? 1 : 2;
         this.shadowX = this.currentX = this.cols / 2 - off;
@@ -257,6 +270,9 @@ class Game {
         this.rotation = 0;
         this.dropped = false;
         this.statistics[this.currentPiece] += 1
+        if (this.pieceWasReleased) {
+            this.pieceWasReleased = false;
+        }
     }
 
     dropSelf() {
@@ -277,16 +293,14 @@ class Game {
         if (this.gameMode === TETRIS) {
            this.rows = 18;
            this.cols = 12;
-           this.blocks = blocks2;
-           this.pieces = this.tetrominos;
-           this.pieceCount = 7
+           this.countOrigin = 0;
+           this.pieceCount = 7;
         }
         else {
             this.rows = 24;
             this.cols = 14;
-            this.blocks = blocks;
-            this.pieces = this.pentominos;
-            this.pieceCount = 18
+            this.countOrigin = 7;
+            this.pieceCount = 18;
         }
 
         if (this.hardCoreMode) {
@@ -309,30 +323,20 @@ class Game {
         this.createGrid();
         this.currentPiece = this.nextPiece = null;
         this.selectNewPiece();
-        this.nextState = 'playing';
-
-        
+        this.nextState = 'playing';     
     }
 
 saveStats() {
     if (this.gameMode === TETRIS) {
         this.allTimeStats['Tetris Games Played'] += 1
-        for (let i = 0; i < 7; i++) {
-           this.allTimeStats[i] += this.statistics[i] 
-        }
-        for (let i = 25; i < 29; i++) {
-            this.allTimeStats[i] += this.statistics[i - 7]
-        }
-
     } else {
         this.allTimeStats['Pentris Games Played'] += 1
-        for (let i = 7; i < 25; i++) {
-            this.allTimeStats[i] += this.statistics[i - 7] 
-         }
-         for (let i = 29; i < 34; i++) {
-             this.allTimeStats[i] += this.statistics[i - 11]
-         }
     }
+
+    for (let i = 0; i < 34; i++) {
+        this.allTimeStats[i] += this.statistics[i] 
+     }
+
     window.localStorage.setItem('BlockMayhemStats', JSON.stringify(this.allTimeStats))
 }
     
@@ -421,7 +425,7 @@ createGrid() {
     this.grid = [];
     for (let x = 0; x < this.cols; x++) {
         for (let y = 0; y < this.rows; y++) {
-            this.grid[y * this.cols + x] = (x === 0 || x === this.cols - 1 || y === this.rows - 1) ? 20 : null;      
+            this.grid[y * this.cols + x] = (x === 0 || x === this.cols - 1 || y === this.rows - 1) ? 25 : null;      
         }
     }
 
@@ -510,24 +514,16 @@ drawStatsPage() {
 
     let col = 0;
     let row = 0;
-    let pc = 0;
     let gm = 0;
     if (!this.cellSize) {
         this.cellSize = Math.floor(this.wHeight * 0.95 / 18);
     }
 
     for (let i = 0; i < 25; i++) {
-        pc = i < 7 ? 4 : 5
-        gm = i < 7 ? TETRIS : PENTRIS
-        for (let px = 0; px < pc; px++) {
-          for (let py = 0; py < pc; py++) {
-            if (this.allPieces[i][this.rotate(px, py, 0, gm)] === 'X') {
+        this.drawPiece(i, this.wWidth* 0.05 * this.scale + col * 200 * this.scale, (this.wHeight * 0.24 + row * this.wHeight * 0.2) * this.scale, this.scale / 2.5, 0)
 
-                ctx.drawImage(blocks3, i * 32, 0, 32, 32, this.wWidth* 0.05 * this.scale + px * this.cellSize * this.scale / 2.5 + col * 200 * this.scale,
-                             (this.wHeight * 0.24 + row * this.wHeight * 0.2) * this.scale + py * this.cellSize * this.scale / 2.5, this.cellSize * this.scale / 2.5, this.cellSize * this.scale / 2.5) 
-            }
-          }
-        }
+        gm = i < 7 ? TETRIS : PENTRIS
+
         ctx.font = `${Math.floor(this.wWidth * 0.015)}px "Comic Sans MS"`;
         ctx.fillText(this.allTimeStats[i].toString(), this.wWidth* 0.05 * this.scale + col * 200 * this.scale + Math.floor(gm / 2) * this.cellSize * this.scale / 2.5, (this.wHeight * 0.24 + row * this.wHeight * 0.2) * this.scale + (gm + 2) * this.cellSize * this.scale / 2.5)
         col++;
@@ -539,12 +535,11 @@ drawStatsPage() {
             col = 0;
             row++;    
         }
-
       }
+
       ctx.font = `${Math.floor(this.wWidth * 0.012)}px "Comic Sans MS"`;
       ctx.fillText(`Tetris games played: ${this.allTimeStats['Tetris Games Played']}`, this.wWidth* 0.05 * this.scale, this.wHeight * 0.17)
       ctx.fillText(`Single line clears: ${this.allTimeStats[25]},   Double line clears: ${this.allTimeStats[26]},   Triple line clears: ${this.allTimeStats[27]},   Quadruple line clears: ${this.allTimeStats[28]}`, this.wWidth* 0.05 * this.scale, this.wHeight * 0.17 + Math.floor(this.wWidth * 0.017))
-      
       ctx.fillText(`Pentris games played: ${this.allTimeStats['Pentris Games Played']}`, this.wWidth* 0.05 * this.scale, this.wHeight * 0.5)
       ctx.fillText(`Single line clears: ${this.allTimeStats[29]},   Double line clears: ${this.allTimeStats[30]},   Triple line clears: ${this.allTimeStats[31]},   Quadruple line clears: ${this.allTimeStats[32]},   Quintuple line clears: ${this.allTimeStats[33]}`, this.wWidth* 0.05 * this.scale, this.wHeight *0.5 + Math.floor(this.wWidth * 0.017))
 }
@@ -560,31 +555,22 @@ drawStats() {
       let row = 0
       let sc = this.gameMode === TETRIS ? 2.5 : 3
       let gap = this.gameMode === TETRIS ? 100 : 75
-            
-      for (let i = 0; i < this.pieceCount; i++) {
-        for (let px = 0; px < this.gameMode; px ++) {
-          for (let py = 0; py < this.gameMode; py ++) {
+      
+      for (let i = this.countOrigin; i < this.countOrigin + this.pieceCount; i++) {
+            this.drawPiece(i, this.wWidth * 0.01 + col * 275 * this.scale, (250 + row * gap) * this.scale, this.scale / sc, 0)
 
-            if (this.pieces[i][this.rotate(px, py, 0, this.gameMode)] === 'X') {
-                ctx.drawImage(this.blocks, i * 32, 0, 32, 32, this.wWidth* 0.01 * this.scale + px * this.cellSize * this.scale / sc + col * 275 * this.scale,
-                             (250 + row * gap) * this.scale + py * this.cellSize * this.scale / sc, this.cellSize * this.scale / sc, this.cellSize * this.scale / sc) 
-            }
-          }
+            let count = 0;
+            let s = this.statistics[i].toString()
+            for (let char of s) {
+            ctx.drawImage(textSheet, +char * 32, 122, 31, 28, (this.wWidth * 0.01 + 100 + count * 32 + col * 275) * this.scale, (275 + row * gap) * this.scale, 32 * this.scale * 0.8, 27 * this.scale * 0.8);
+            count++;
         }
 
-        let count = 0;
-        let s = this.statistics[i].toString()
-        for (let char of s) {
-          ctx.drawImage(textSheet, +char * 32, 122, 31, 28, (this.wWidth * 0.01 + 100 + count * 32 + col * 275) * this.scale, (275 + row * gap) * this.scale, 32 * this.scale * 0.8, 27 * this.scale * 0.8);
-          count++;
-        }
         row++
         if (row === 9) {
           row = 0
-        }
-        if (i === 8) {
-          col = 1
-        }
+          col++
+        }     
       } 
 }
 
@@ -626,7 +612,9 @@ restartGame() {
     this.enteredName = '';
     this.enteredPlace = 0;
     this.newRecord = false;
-    this.keys = {}
+    this.keys = {};
+    this.discardedPieces = [];
+    this.pieceWasReleased = false;
     this.lastClick = performance.now();
     this.nextState = this.gameState = 'titleScreen';
     for (let key in this.statistics) {
@@ -759,22 +747,35 @@ checkKeyInput() {
     if (this.keys['ArrowRight'] && !this.dropped && this.fits(this.currentX+1, this.currentY, this.rotation)) {
         this.currentX++;
         }
+
      //Up Arrow
         if (this.keys['ArrowUp'] && !this.dropped && !this.keyHold && this.fits(this.currentX, this.currentY, this.rotation+1)) {
         this.rotation++;
         this.keyHold = true;
         }
+
     //Down Arrow
         if (this.keys['ArrowDown'] && this.fits(this.currentX, this.currentY+1, this.rotation)) {
         this.currentY++;
         }
-    //P
+
+    //Pause
     if(this.keys['p']) {
             this.nextState = 'paused';
     }
 
-    //H
+    //Hints
     if (this.keys['h'] && this.hintsAllowed) this.hints = !this.hints;
+
+    //Discard Piece
+    if(this.keys['d'] && !this.keyHold) {
+        this.discardPiece();
+    }
+
+    //Releace piece
+    if(this.keys['r'] && !this.keyHold) {
+        this.releasePiece();
+    }
 
    //SPACE
     if (this.keys[' ']) {
@@ -866,9 +867,13 @@ gameLoop() {
         ctx.fillText('Space: Drop piece', 25, this.wHeight * 0.35);
         ctx.fillText('H: Toggle aim assist', 25, this.wHeight * 0.4);
         ctx.fillText('P: Pause', 25, this.wHeight * 0.45);
-        ctx.fillText('Skill Level: You start with a given number of randomly filled lines', 25, this.wHeight * 0.6);
-        ctx.fillText('Hardcore Mode: Aim assist disabled. A random line will get scrambled once in a while', 25, this.wHeight * 0.7);
-        ctx.fillText('Blocks art based on work by Leozlk. Cursor art by para. Downloaded from opengameart.org', 25, this.wHeight - this.wWidth * 0.015);
+        ctx.fillText('D: Discard unwanted piece before it falls halfway (max 5 pieces at any given time)', 25, this.wHeight * 0.5);
+        ctx.fillText('R: Release discarded piece as next piece (only if different than next piece and if last released piece has entered the board)', 25, this.wHeight * 0.55)
+        ctx.fillText('S: Toggle display of statistics during game', 25, this.wHeight * 0.6)
+        ctx.fillText('Skill Level: You start with a given number of randomly filled lines', 25, this.wHeight * 0.7);
+        ctx.fillText('Hardcore Mode: Aim assist disabled. A random line will get scrambled once in a while', 25, this.wHeight * 0.8);
+        ctx.fillText('Core game mechanics (piece drawing & rotation) based on C++ code by Javidx9', 25, this.wHeight * 0.9)
+        ctx.fillText('Blocks art based on work by Leozlk. Cursor art by para. Downloaded from opengameart.org', 25, this.wHeight *0.95);
     }
 
     if (this.gameState === 'statsScreen') {
@@ -970,7 +975,7 @@ gameLoop() {
         ctx.save();
         ctx.font = `${Math.floor(this.wWidth * 0.015)}px "Snap ITC"`;
         ctx.fillStyle = `rgb(206, 206, 12)`;
-        let txt = 'Ver. 1.1.0'
+        let txt = 'Ver. 1.2.2'
         let w1 = ctx.measureText(txt).width;
         ctx.fillText(txt, this.wWidth - (w1 + 10), this.wHeight - 10);
         ctx.restore();
@@ -1000,11 +1005,20 @@ gameLoop() {
         if (this.showStats) {
           this.drawStats()
         }
-        this.drawPiece();
+        this.drawPiece(this.currentPiece, this.originX + this.currentX * this.cellSize, this.originY + this.currentY * this.cellSize, this.scale, this.rotation);
+        this.drawPiece(this.nextPiece, this.wWidth - 6 * this.cellSize, 1.2 * this.cellSize, this.scale * 0.8, 0)
+
+        ctx.save();
+        ctx.fillStyle = `rgb(206, 206, 12)`;
+        ctx.font = `${Math.floor(sWidth * 0.015)}px "Comic Sans MS"`;
+        ctx.fillText('Discarded Pieces: ', this.wWidth / 2 + this.cols / 2 * this.cellSize + 10, this.wHeight * 0.79)
+        for (let i = 0; i < this.discardedPieces.length; i++) {
+            this.drawPiece(this.discardedPieces[i], this.wWidth / 2 + this.cols / 2 * this.cellSize + 10 + i * this.cellSize * this.gameMode * this.scale * 0.7, this.wHeight - (this.gameMode + 1) * this.cellSize * this.scale * 0.7, this.scale * 0.7, 0);
+        }
 
         if(this.hints) {
             this.dropShadow();
-            this.drawShadow();
+            this.drawShadow(this.currentPiece);
         }
     }
 
@@ -1181,6 +1195,10 @@ gameLoop() {
             this.lastTick = this.tick;
             this.dropped = true;
             this.nextState = 'gameOver';
+            this.score -= 250 * this.discardedPieces.length;
+            if(this.score < 0) {
+                this.score = 0;
+            }
             this.saveStats();
         }
 
@@ -1196,7 +1214,7 @@ gameLoop() {
                 this.dropped = true;
                 for (let px = 0; px < 5; px ++) {
                     for (let py = 0; py < 5; py ++) {
-                        if (this.pieces[this.currentPiece][this.rotate(px, py, this.rotation, this.gameMode)] === 'X') {
+                        if (this.shapes[this.currentPiece][this.rotate(px, py, this.rotation, this.gameMode)] === 'X') {
                             this.grid[(this.currentY + py) * this.cols + (this.currentX + px)] = this.currentPiece;
                         }
                     }

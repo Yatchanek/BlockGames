@@ -18,10 +18,6 @@ const game = new Game();
 
 blocks.src = './res/blocks.png';
 blocks.onload = assetLoader();
-blocks2.src = './res/blocks2.png';
-blocks2.onload = assetLoader();
-blocks3.src = './res/blocks3.png';
-blocks3.onload = assetLoader();
 title.src = './res/title.png';
 title.onload = assetLoader();
 cursor.src = './res/cursor.png';
@@ -36,7 +32,7 @@ function sleep(ms) {
 
 function assetLoader() {
     resCount++;
-    if (resCount === 6) {
+    if (resCount === 4) {
      gameWindow.width = window.innerWidth;
      gameWindow.height = window.innerHeight;
      game.scale = Math.min(this.wWidth / 1920, this.wHeight / 937);
